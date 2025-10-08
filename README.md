@@ -33,6 +33,8 @@ Add the following form-data fields:
 
 > ✅ Upstream node requirement: the node that supplies the audio must emit binary data. For example, set **Response Format** to `File` on an HTTP download or use **Read Binary File** when sourcing from disk.
 
+> 🧭 Binary property picker tip: after executing the upstream node once, open the **Binary** tab in its results. The keys you see (`data`, `data_1`, etc.) are the exact strings that must be referenced in **Binary Property** and on the `file` form field. Do not paste the original filename (`New Recording 24.m4a`) into these inputs—it is metadata, not the property key, and will cause `The item has no binary field ...` errors. Use the dropdown next to **Binary Property** to select the proper key so spacing and capitalisation match perfectly.
+
 ### 2. Required headers
 
 ```
@@ -156,3 +158,23 @@ Pair the node with a binary-producing step. The snippet below downloads a sample
 ```
 
 Import the workflow JSON above into n8n to validate your configuration. Replace the demo download URL with your own audio source. In the `OPENAI_HEADER_AUTH` credential, set **Name** to `Authorization` and **Value** to `Bearer <OPENAI_API_KEY>`.
+
+### 4. Renaming or normalising binary properties (optional)
+
+If your upstream node emits a binary property with an inconvenient name (for example, `New Recording 24.m4a ` with trailing spaces), insert a **Move Binary Data** node to standardise it before calling Whisper. Configure the node as follows:
+
+```json
+{
+  "name": "Normalise binary key",
+  "type": "n8n-nodes-base.moveBinaryData",
+  "typeVersion": 1,
+  "position": [440, 280],
+  "parameters": {
+    "mode": "move",
+    "sourceBinaryProperty": "New Recording 24.m4a ",
+    "destinationBinaryProperty": "data"
+  }
+}
+```
+
+Then set the Whisper HTTP Request node’s **Binary Property** to `data`. This guarantees the binary payload exists under a simple key regardless of the original filename. The dropdown picker will display `data` after executing the **Move Binary Data** node once.
