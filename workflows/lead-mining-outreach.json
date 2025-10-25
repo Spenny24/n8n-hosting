@@ -1,0 +1,684 @@
+{
+  "name": "Lead Mining & Outreach Orchestration",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": [
+                0,
+                6,
+                12,
+                18
+              ]
+            }
+          ]
+        }
+      },
+      "id": "6-hour-lead-mining",
+      "name": "6-Hour Lead Mining",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-mining/manual-trigger",
+        "responseMode": "lastNode",
+        "options": {
+          "responseContentType": "application/json"
+        }
+      },
+      "id": "manual-webhook",
+      "name": "Manual Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "merge-trigger",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [
+        -980,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const incoming = items[0]?.json ?? {};\nconst seed = {\n  runId: incoming.runId || `${Date.now()}`,\n  requestedMarket: incoming.market || process.env.DEFAULT_MARKET || 'AZ-Maricopa',\n  leadCollections: incoming.leadCollections || {},\n  executionMeta: {\n    startedAt: new Date().toISOString(),\n    trigger: incoming.trigger || 'automation'\n  }\n};\nreturn [{ json: seed }];"
+      },
+      "id": "seed-context",
+      "name": "Seed Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const [{ json }] = items.length ? items : [{ json: {} }];\nconst { PROPSTREAM_API_KEY, PROPSTREAM_BASE_URL = 'https://api.propstream.com', PROPSTREAM_SEARCH_LIMIT = '500' } = process.env;\nif (!PROPSTREAM_API_KEY) {\n  throw new Error('Missing PROPSTREAM_API_KEY environment variable.');\n}\nconst market = json.requestedMarket || process.env.DEFAULT_MARKET || 'AZ-Maricopa';\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  uri: `${PROPSTREAM_BASE_URL.replace(/\\/$/, '')}/leads`,\n  qs: {\n    filter: 'tired-landlord',\n    limit: PROPSTREAM_SEARCH_LIMIT,\n    market\n  },\n  headers: {\n    'x-api-key': PROPSTREAM_API_KEY,\n    accept: 'application/json'\n  },\n  json: true\n});\nconst leadsRaw = Array.isArray(response?.leads) ? response.leads : [];\njson.executionMeta = json.executionMeta || {};\nconst normalized = leadsRaw.map((lead) => ({\n  source: 'PropStream',\n  parcelId: lead.parcelId || lead.apn || null,\n  address1: lead.mailingAddress?.line1 || lead.address || '',\n  city: lead.mailingAddress?.city || '',\n  state: lead.mailingAddress?.state || '',\n  postalCode: lead.mailingAddress?.zip || '',\n  ownerName: lead.owner?.name || '',\n  mailingAddress: lead.mailingAddress || null,\n  property: lead.property || null,\n  financials: lead.financials || null,\n  tags: ['tired-landlord'],\n  raw: lead\n}));\njson.leadCollections = json.leadCollections || {};\njson.leadCollections.propstream = normalized;\nreturn [{ json }];"
+      },
+      "id": "propstream-search",
+      "name": "PropStream Search",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const [{ json }] = items.length ? items : [{ json: {} }];\nconst { COUNTY_RECORDS_BASE_URL = 'https://api.countyrecords.io', COUNTY_RECORDS_TOKEN } = process.env;\nif (!COUNTY_RECORDS_TOKEN) {\n  throw new Error('Missing COUNTY_RECORDS_TOKEN environment variable.');\n}\nconst county = process.env.DEFAULT_COUNTY || 'Maricopa';\nconst state = (json.state || process.env.DEFAULT_STATE || 'AZ').toUpperCase();\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  uri: `${COUNTY_RECORDS_BASE_URL.replace(/\\/$/, '')}/v1/tax-delinquent`,\n  qs: {\n    state,\n    county,\n    status: 'open',\n    limit: process.env.COUNTY_RECORDS_LIMIT || '500'\n  },\n  headers: {\n    authorization: `Bearer ${COUNTY_RECORDS_TOKEN}`,\n    accept: 'application/json'\n  },\n  json: true\n});\nconst leadsRaw = Array.isArray(response?.records) ? response.records : [];\njson.executionMeta = json.executionMeta || {};\nconst normalized = leadsRaw.map((lead) => ({\n  source: 'CountyRecords',\n  parcelId: lead.parcel_number || lead.parcelId || null,\n  address1: lead.situs_address?.line1 || lead.address || '',\n  city: lead.situs_address?.city || '',\n  state: lead.situs_address?.state || state,\n  postalCode: lead.situs_address?.zip || '',\n  ownerName: lead.owner_name || '',\n  delinquentAmount: lead.amount_due || 0,\n  delinquentYear: lead.tax_year || null,\n  tags: ['tax-delinquent'],\n  raw: lead\n}));\njson.leadCollections = json.leadCollections || {};\njson.leadCollections.county = normalized;\nreturn [{ json }];"
+      },
+      "id": "county-records-api",
+      "name": "County Records API",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const [{ json }] = items.length ? items : [{ json: {} }];\nconst { REDFIN_DOM_BASE_URL = 'https://api.redfindata.ai', REDFIN_DOM_TOKEN } = process.env;\nif (!REDFIN_DOM_TOKEN) {\n  throw new Error('Missing REDFIN_DOM_TOKEN environment variable.');\n}\nconst market = json.requestedMarket || process.env.DEFAULT_MARKET || 'AZ-Maricopa';\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  uri: `${REDFIN_DOM_BASE_URL.replace(/\\/$/, '')}/v1/days-on-market`,\n  qs: {\n    market,\n    maxDom: process.env.REDFIN_MAX_DOM || '120',\n    status: 'active'\n  },\n  headers: {\n    authorization: `Bearer ${REDFIN_DOM_TOKEN}`,\n    accept: 'application/json'\n  },\n  json: true\n});\nconst leadsRaw = Array.isArray(response?.properties) ? response.properties : [];\njson.executionMeta = json.executionMeta || {};\nconst normalized = leadsRaw.map((lead) => ({\n  source: 'RedfinDOM',\n  parcelId: lead.parcelId || null,\n  address1: lead.address?.line1 || '',\n  city: lead.address?.city || '',\n  state: lead.address?.state || '',\n  postalCode: lead.address?.postalCode || '',\n  dom: lead.metrics?.dom || null,\n  price: lead.price || null,\n  tags: ['high-dom'],\n  raw: lead\n}));\njson.leadCollections = json.leadCollections || {};\njson.leadCollections.redfin = normalized;\nreturn [{ json }];"
+      },
+      "id": "redfin-dom",
+      "name": "Redfin/BDO-DOM",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const [{ json }] = items.length ? items : [{ json: {} }];\nconst collections = json.leadCollections || {};\nconst merged = [\n  ...(collections.propstream || []),\n  ...(collections.county || []),\n  ...(collections.redfin || [])\n];\njson.leads = merged;\njson.leadCollections = collections;\njson.executionMeta.mergedAt = new Date().toISOString();\njson.executionMeta.sourceCounts = {\n  propstream: collections.propstream?.length || 0,\n  county: collections.county?.length || 0,\n  redfin: collections.redfin?.length || 0\n};\nreturn [{ json }];"
+      },
+      "id": "merge-all-sources",
+      "name": "Merge All Sources",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const [{ json }] = items.length ? items : [{ json: {} }];\nconst leads = Array.isArray(json.leads) ? json.leads : [];\nconst seen = new Set();\nconst normalized = [];\nfor (const lead of leads) {\n  const addressKey = [lead.address1, lead.city, lead.state, lead.postalCode].map((part) => (part || '').toString().trim().toUpperCase()).join('|');\n  const uniqueKey = lead.parcelId || addressKey;\n  if (seen.has(uniqueKey)) {\n    continue;\n  }\n  seen.add(uniqueKey);\n  normalized.push({\n    ...lead,\n    addressKey,\n    parcelId: lead.parcelId || null,\n    ownerName: lead.ownerName || lead.raw?.owner || null\n  });\n}\njson.leads = normalized;\njson.executionMeta.normalizedCount = normalized.length;\nreturn [{ json }];"
+      },
+      "id": "normalize-dedupe",
+      "name": "Normalize & Dedupe",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const [{ json }] = items.length ? items : [{ json: {} }];\nconst leads = Array.isArray(json.leads) ? json.leads : [];\nconst batchSize = parseInt(process.env.SKIP_TRACE_BATCH_SIZE || '50', 10);\nconst batches = [];\nfor (let i = 0; i < leads.length; i += batchSize) {\n  batches.push({\n    batchIndex: batches.length,\n    leads: leads.slice(i, i + batchSize)\n  });\n}\nreturn batches.map((batch) => ({ json: { ...batch, runId: json.runId } }));"
+      },
+      "id": "batch-for-skip-trace",
+      "name": "Batch for Skip Trace",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.TLOXP_BASE_URL || 'https://api.tloxp.com' }}/skip-trace",
+        "options": {
+          "batchResponse": true,
+          "response": "json",
+          "propertyName": "results"
+        },
+        "jsonParameters": true,
+        "sendBody": true,
+        "bodyParametersJson": "={ \"listName\": \"lead-batch-{{$json.batchIndex}}\", \"records\": {{ JSON.stringify($json.leads) }} }",
+        "headers": {
+          "X-API-KEY": "={{$env.TLOXP_API_KEY}}",
+          "Content-Type": "application/json"
+        }
+      },
+      "id": "tloxp-skip-trace",
+      "name": "TLOxp Skip Trace",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const lead = item.json || {};\n  const arv = Number(lead.avm?.arv ?? lead.comps?.arv ?? 0);\n  const repairEstimate = Number(lead.renovationBudget ?? 0);\n  const maoPercent = Number(process.env.MAO_PERCENTAGE ?? '0.7');\n  const mao = Math.max(0, arv * maoPercent - repairEstimate);\n  return {\n    json: {\n      ...lead,\n      calculations: {\n        arv,\n        repairEstimate,\n        mao\n      }\n    }\n  };\n});"
+      },
+      "id": "enrich-calc-mao",
+      "name": "Enrich & Calculate MAO",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const lead = item.json;\n  const condition = Math.max(0, Math.min(25, (lead.propertyConditionScore ?? 0)));\n  const motivation = Math.max(0, Math.min(25, (lead.motivationScore ?? (lead.tags?.includes('tax-delinquent') ? 18 : 10))));\n  const timeline = Math.max(0, Math.min(25, lead.timelineScore ?? (lead.ownerIntent?.toLowerCase().includes('urgent') ? 20 : 12)));\n  const priceFlex = Math.max(0, Math.min(25, lead.priceFlexibilityScore ?? (lead.calculations?.mao && lead.askingPrice ? Math.min(25, (lead.calculations.mao / lead.askingPrice) * 25) : 10)));\n  const total = condition + motivation + timeline + priceFlex;\n  return {\n    json: {\n      ...lead,\n      score: { condition, motivation, timeline, priceFlex, total }\n    }\n  };\n});"
+      },
+      "id": "four-pillar-scoring",
+      "name": "4-Pillar Scoring",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.score?.total || 0}}",
+              "operation": "largerEqual",
+              "value2": 85
+            }
+          ]
+        }
+      },
+      "id": "route-hot-leads",
+      "name": "Route Hot Leads",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.AIRAI_BASE_URL || 'https://api.air.ai/v1'}}/calls",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendBody": true,
+        "bodyParametersJson": "={ \"campaignId\": {{$env.AIRAI_CAMPAIGN_ID}}, \"contact\": { \"name\": \"{{$json.ownerName}}\", \"phones\": {{ JSON.stringify($json.phones || []) }} }, \"propertyAddress\": \"{{$json.address1}}, {{$json.city}}, {{$json.state}} {{$json.postalCode}}\", \"notes\": \"MAO: {{$json.calculations.mao}} | Score: {{$json.score.total}}\" }",
+        "headers": {
+          "Authorization": "Bearer {{$env.AIRAI_API_KEY}}",
+          "Content-Type": "application/json"
+        },
+        "options": {
+          "response": "json",
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "airai-voice-call",
+      "name": "Air.ai Voice Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "channel": "={{$env.SLACK_HOT_LEADS_CHANNEL}}",
+        "text": "\ud83d\udd25 *Hot Lead Alert*\n>*Owner:* {{$json.ownerName || 'Unknown'}}\n>*Address:* {{$json.address1}}, {{$json.city}}, {{$json.state}} {{$json.postalCode}}\n>*Score:* {{$json.score.total}}\n>*MAO:* {{$json.calculations.mao}}\n>*Tags:* {{$json.tags?.join(', ') || 'none'}}",
+        "additionalFields": {
+          "as_user": false
+        }
+      },
+      "id": "slack-hot-alert",
+      "name": "Slack Hot Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.CALLTOOLS_BASE_URL || 'https://api.calltools.com/v2'}}/lists/upload",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendBody": true,
+        "bodyParametersJson": "={ \"listId\": {{$env.CALLTOOLS_LIST_ID}}, \"records\": {{ JSON.stringify([$json]) }} }",
+        "headers": {
+          "Authorization": "Bearer {{$env.CALLTOOLS_API_KEY}}",
+          "Content-Type": "application/json"
+        },
+        "options": {
+          "response": "json",
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "calltools-upload",
+      "name": "Call Tools Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REIREPLY_BASE_URL || 'https://api.reireply.com/v1'}}/campaigns/{{$env.REIREPLY_CAMPAIGN_ID}}/contacts",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendBody": true,
+        "bodyParametersJson": "={ \"contact\": { \"name\": \"{{$json.ownerName}}\", \"phones\": {{ JSON.stringify($json.phones || []) }}, \"emails\": {{ JSON.stringify($json.emails || []) }} }, \"tags\": {{ JSON.stringify($json.tags || []) }} }",
+        "headers": {
+          "Authorization": "Bearer {{$env.REIREPLY_API_KEY}}",
+          "Content-Type": "application/json"
+        },
+        "options": {
+          "response": "json",
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "rei-reply-sms",
+      "name": "REI Reply SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "create",
+        "additionalFields": {
+          "email": "={{$json.emails?.[0] || $json.ownerEmail || ''}}",
+          "phone": "={{$json.phones?.[0] || ''}}",
+          "firstName": "={{$json.ownerName?.split(' ')[0] || ''}}",
+          "lastName": "={{$json.ownerName?.split(' ').slice(1).join(' ') || ''}}",
+          "tags": "Lead Pipeline",
+          "fieldValues": [
+            {
+              "fieldId": "={{$env.ACTIVECAMPAIGN_SOURCE_FIELD_ID}}",
+              "value": "={{$json.source}}"
+            }
+          ]
+        }
+      },
+      "id": "activecampaign",
+      "name": "ActiveCampaign",
+      "type": "n8n-nodes-base.activeCampaign",
+      "typeVersion": 1,
+      "position": [
+        2180,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "application": "={{$env.PODIO_APP_ID}}",
+        "workspace": "={{$env.PODIO_WORKSPACE_ID}}",
+        "item": "={ \"fields\": { \"title\": \"{{$json.ownerName}}\", \"address\": \"{{$json.address1}}, {{$json.city}}, {{$json.state}} {{$json.postalCode}}\", \"phone\": \"{{$json.phones?.[0] || ''}}\", \"score\": {{$json.score.total}}, \"mao\": {{$json.calculations.mao}} } }"
+      },
+      "id": "podio-crm",
+      "name": "Podio CRM",
+      "type": "n8n-nodes-base.podio",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.DOCUSIGN_BASE_URL || 'https://demo.docusign.net/restapi'}}/v2.1/accounts/{{$env.DOCUSIGN_ACCOUNT_ID}}/envelopes",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendBody": true,
+        "bodyParametersJson": "={ \"emailSubject\": \"Offer for {{$json.address1}}\", \"templateId\": {{$env.DOCUSIGN_TEMPLATE_ID}}, \"templateRoles\": {{ JSON.stringify([ { email: $json.emails?.[0] || $env.DOCUSIGN_DEFAULT_EMAIL, name: $json.ownerName, roleName: 'Seller', tabs: { textTabs: [ { tabLabel: 'OfferAmount', value: String($json.calculations?.mao || 0) } ] } } ]) }}, \"status\": \"sent\" }",
+        "headers": {
+          "Authorization": "Bearer {{$env.DOCUSIGN_ACCESS_TOKEN}}",
+          "Content-Type": "application/json"
+        },
+        "options": {
+          "response": "json",
+          "ignoreResponseCode": true
+        }
+      },
+      "id": "docusign-contract",
+      "name": "DocuSign Contract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        2620,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{$env.GOOGLE_SHEETS_SHEET_ID}}",
+        "range": "Leads!A:Z",
+        "options": {
+          "valueInputMode": "USER_ENTERED",
+          "disableParsing": true
+        },
+        "valueInputMode": "RAW",
+        "data": [
+          {
+            "values": "={{JSON.stringify([$json.runId || '', $json.ownerName || '', $json.address1 || '', $json.city || '', $json.state || '', $json.postalCode || '', $json.source || '', $json.score?.total || 0, $json.calculations?.mao || 0, ($json.tags && $json.tags.join(', ')) || '', ($json.phones && $json.phones.join(', ')) || '', ($json.emails && $json.emails.join(', ')) || '', $json.dom || '', $json.delinquentAmount || '', $json.executionMeta?.startedAt || ''])}}"
+          }
+        ]
+      },
+      "id": "google-sheets",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        2840,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => ({ json: { success: true, lead: item.json, message: 'Lead workflow complete' } }));"
+      },
+      "id": "success-node",
+      "name": "Success",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        3060,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "6-Hour Lead Mining": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Seed Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Seed Context": {
+      "main": [
+        [
+          {
+            "node": "PropStream Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PropStream Search": {
+      "main": [
+        [
+          {
+            "node": "County Records API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "County Records API": {
+      "main": [
+        [
+          {
+            "node": "Redfin/BDO-DOM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redfin/BDO-DOM": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Sources": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Dedupe": {
+      "main": [
+        [
+          {
+            "node": "Batch for Skip Trace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch for Skip Trace": {
+      "main": [
+        [
+          {
+            "node": "TLOxp Skip Trace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TLOxp Skip Trace": {
+      "main": [
+        [
+          {
+            "node": "Enrich & Calculate MAO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich & Calculate MAO": {
+      "main": [
+        [
+          {
+            "node": "4-Pillar Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4-Pillar Scoring": {
+      "main": [
+        [
+          {
+            "node": "Route Hot Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Hot Leads": {
+      "main": [
+        [
+          {
+            "node": "Air.ai Voice Call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Tools Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Air.ai Voice Call": {
+      "main": [
+        [
+          {
+            "node": "Slack Hot Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Hot Alert": {
+      "main": [
+        [
+          {
+            "node": "Call Tools Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Tools Upload": {
+      "main": [
+        [
+          {
+            "node": "REI Reply SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REI Reply SMS": {
+      "main": [
+        [
+          {
+            "node": "ActiveCampaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ActiveCampaign": {
+      "main": [
+        [
+          {
+            "node": "Podio CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Podio CRM": {
+      "main": [
+        [
+          {
+            "node": "DocuSign Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DocuSign Contract": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Los_Angeles"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "6d4ac4b0-36a0-4d45-a497-aab1e9e315d0",
+  "id": "lead-mining-orchestration",
+  "active": false
+}
