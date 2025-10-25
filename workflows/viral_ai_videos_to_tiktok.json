@@ -1,0 +1,479 @@
+{
+  "name": "Viral AI Videos to TikTok with Veo3",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 */2 * * *"
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "ContentPipeline!A:K",
+        "returnAll": false,
+        "filters": {
+          "sort": [
+            {
+              "key": "status",
+              "order": "ASC"
+            }
+          ],
+          "where": [
+            {
+              "column": "status",
+              "condition": "equal",
+              "value": "pending"
+            }
+          ]
+        },
+        "options": {
+          "limit": 1
+        }
+      },
+      "id": "2",
+      "name": "Get New Video (Google Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -380,
+        240
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.prompt }}"
+            },
+            {
+              "name": "video_id",
+              "value": "={{ $json.id }}"
+            }
+          ],
+          "number": [
+            {
+              "name": "duration",
+              "value": "={{ $json.duration ?? 45 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "Set Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"VEO3_BASE_URL\"] + '/videos' }}",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "options": {},
+        "sendHeaders": true,
+        "headerParametersJson": "={\"Authorization\": \"Bearer ${$env['VEO3_API_KEY']}\"}",
+        "sendBody": true,
+        "bodyParametersJson": "={\n  \"prompt\": $json.prompt,\n  \"duration\": $json.duration,\n  \"metadata\": {\n    \"source_row_id\": $json.video_id\n  }\n}"
+      },
+      "id": "4",
+      "name": "Create Video (Veo3 API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 60,
+        "unit": "seconds"
+      },
+      "id": "5",
+      "name": "Wait 60 sec",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        360,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"VEO3_BASE_URL\"] + '/videos/' + $json.data.id }}",
+        "method": "GET",
+        "authentication": "headerAuth",
+        "sendHeaders": true,
+        "headerParametersJson": "={\"Authorization\": \"Bearer ${$env['VEO3_API_KEY']}\"}"
+      },
+      "id": "6",
+      "name": "Get Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        600,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data.status }}",
+              "operation": "notEqual",
+              "value2": "completed"
+            }
+          ]
+        }
+      },
+      "id": "7",
+      "name": "Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        840,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 45,
+        "unit": "seconds"
+      },
+      "id": "8",
+      "name": "Wait Loop",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        840,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.assets.video.url }}",
+        "responseFormat": "file",
+        "options": {
+          "fullResponse": true
+        }
+      },
+      "id": "9",
+      "name": "Get File Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1080,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You write viral TikTok titles under 80 characters."
+          },
+          {
+            "role": "user",
+            "content": "={{ 'Create a viral TikTok title for: ' + $json.data.metadata.prompt }}"
+          }
+        ]
+      },
+      "id": "10",
+      "name": "Generate Title",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        1320,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_OPENAI\"] }}",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "binaryData": true,
+        "fileName": "={{ $json.data.metadata.video_id + '.mp4' }}",
+        "parentId": "={{ $env[\"GOOGLE_DRIVE_FOLDER_VIDEOS\"] }}"
+      },
+      "id": "11",
+      "name": "Upload Video (Google Drive)",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        360
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE_DRIVE\"] }}",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "ContentPipeline!A:K",
+        "updateAllMatches": true,
+        "key": "id",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        },
+        "fieldsToUpdate": {
+          "string": [
+            {
+              "name": "status",
+              "value": "published"
+            },
+            {
+              "name": "drive_file_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "tiktok_title",
+              "value": "={{ $item(0).$node[\"Generate Title\"].json.choices[0].message.content }}"
+            }
+          ]
+        }
+      },
+      "id": "12",
+      "name": "Update Result (Google Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1800,
+        360
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"POSTIZ_WEBHOOK_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"title\": $item(0).$node['Generate Title'].json.choices[0].message.content,\n  \"driveFileId\": $json.id,\n  \"platform\": \"tiktok\"\n}"
+      },
+      "id": "13",
+      "name": "Upload to Postiz",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        2040,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"TIKTOK_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"title\": $item(0).$node['Generate Title'].json.choices[0].message.content,\n  \"videoUrl\": $item(0).$node['Upload Video (Google Drive)'].json.webViewLink,\n  \"scheduleTime\": $now.plus({ minute: 30 }).toISO()\n}"
+      },
+      "id": "14",
+      "name": "TikTok Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        2280,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get New Video (Google Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get New Video (Google Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Set Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Metadata": {
+      "main": [
+        [
+          {
+            "node": "Create Video (Veo3 API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video (Veo3 API)": {
+      "main": [
+        [
+          {
+            "node": "Wait 60 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 60 sec": {
+      "main": [
+        [
+          {
+            "node": "Get Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Status": {
+      "main": [
+        [
+          {
+            "node": "Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Completed?": {
+      "main": [
+        [
+          {
+            "node": "Wait Loop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get File Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Loop": {
+      "main": [
+        [
+          {
+            "node": "Get Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Video": {
+      "main": [
+        [
+          {
+            "node": "Generate Title",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Title": {
+      "main": [
+        [
+          {
+            "node": "Upload Video (Google Drive)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Video (Google Drive)": {
+      "main": [
+        [
+          {
+            "node": "Update Result (Google Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Result (Google Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Upload to Postiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Postiz": {
+      "main": [
+        [
+          {
+            "node": "TikTok Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "veo3-tiktok-001",
+  "settings": {
+    "timezone": "America/New_York",
+    "executionOrder": "v1"
+  }
+}
