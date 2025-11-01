@@ -1,0 +1,513 @@
+{
+  "name": "Viral Content AI",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 */3 * * *"
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "application": "airtable",
+        "operation": "list",
+        "baseId": "={{ $env[\"AIRTABLE_BASE_ID\"] }}",
+        "tableId": "Creators",
+        "options": {
+          "filterByFormula": "{Active} = TRUE()"
+        }
+      },
+      "id": "2",
+      "name": "Search Creators (Airtable)",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        200
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_AIRTABLE\"] }}",
+          "name": "Airtable"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "return $input.all().map(item => ({ json: item.json }));"
+      },
+      "id": "3",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeActor",
+        "actor": "apify/instagram-reels-scraper",
+        "jsonParameters": true,
+        "inputJson": "={\n  \"usernames\": [$json.fields.handle],\n  \"resultsLimit\": 50\n}"
+      },
+      "id": "4",
+      "name": "Apify Fetch Reels",
+      "type": "n8n-nodes-base.apify",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        200
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_APIFY\"] }}",
+          "name": "Apify"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "videoUrl",
+              "value": "={{ $json.videoUrl }}"
+            }
+          ],
+          "number": [
+            {
+              "name": "playCount",
+              "value": "={{ $json.playCount }}"
+            }
+          ]
+        }
+      },
+      "id": "5",
+      "name": "Save Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "itemList",
+        "operation": "aggregate",
+        "options": {
+          "sort": {
+            "key": "playCount",
+            "order": "desc"
+          }
+        }
+      },
+      "id": "6",
+      "name": "Sort",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        420,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "7",
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return $input.all();"
+      },
+      "id": "8",
+      "name": "Loop Over Items (again)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        940,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"VIDEO_API_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"prompt\": 'Create viral remix of ' + $json.caption,\n  \"referenceVideo\": $json.videoUrl\n}"
+      },
+      "id": "9",
+      "name": "Create Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 30,
+        "unit": "seconds"
+      },
+      "id": "10",
+      "name": "Wait for Render",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.status_url }}",
+        "method": "GET"
+      },
+      "id": "11",
+      "name": "Get Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"GEMINI_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"fileUrl\": $json.data.assets.video.url,\n  \"tags\": ['viral-content']\n}"
+      },
+      "id": "12",
+      "name": "Upload File (Gemini)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1920,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 20,
+        "unit": "seconds"
+      },
+      "id": "13",
+      "name": "Wait for Analysis",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt",
+              "value": "={{ 'Summarize hook, structure, CTA for ' + $json.caption }}"
+            }
+          ]
+        }
+      },
+      "id": "14",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"GEMINI_ANALYZE_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"fileId\": $item(0).$node['Upload File (Gemini)'].json.fileId,\n  \"prompt\": $json.prompt\n}"
+      },
+      "id": "15",
+      "name": "Gemini Ask Questions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        2400,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "guideline",
+              "value": "={{ $json.analysis }}"
+            }
+          ]
+        }
+      },
+      "id": "16",
+      "name": "Set Guideline",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "ViralContent!A:H",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        },
+        "fields": {
+          "string": [
+            {
+              "name": "creator",
+              "value": "={{ $json.fields.Name }}"
+            },
+            {
+              "name": "remix_url",
+              "value": "={{ $item(0).$node['Get Video'].json.data.assets.video.url }}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{ $item(0).$node['Set Guideline'].json.guideline }}"
+            }
+          ]
+        }
+      },
+      "id": "17",
+      "name": "Save Values",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        2640,
+        200
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search Creators (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Creators (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Apify Fetch Reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Fetch Reels": {
+      "main": [
+        [
+          {
+            "node": "Save Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Fields": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (again)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items (again)": {
+      "main": [
+        [
+          {
+            "node": "Create Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video": {
+      "main": [
+        [
+          {
+            "node": "Wait for Render",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Analysis": {
+      "main": [
+        [
+          {
+            "node": "Save Values",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ],
+      "mainOutput": 1
+    },
+    "Get Video": {
+      "main": [
+        [
+          {
+            "node": "Upload File (Gemini)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload File (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Wait for Analysis",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Set Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini Ask Questions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Ask Questions": {
+      "main": [
+        [
+          {
+            "node": "Set Guideline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Guideline": {
+      "main": [
+        [
+          {
+            "node": "Save Values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Render": {
+      "main": [
+        [
+          {
+            "node": "Get Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "viral-content-ai-001",
+  "settings": {
+    "timezone": "America/New_York"
+  }
+}
