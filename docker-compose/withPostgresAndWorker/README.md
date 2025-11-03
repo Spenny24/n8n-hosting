@@ -7,7 +7,7 @@ Starts n8n with PostgreSQL as database, and the Worker as a separate container.
 To start n8n simply start docker-compose by executing the following
 command in the current folder.
 
-**IMPORTANT:** But before you do that change the default users and passwords in the [`.env`](.env) file!
+**IMPORTANT:** Before starting, copy `.env.example` to `.env` and edit the values accordingly.
 
 ```
 docker-compose up -d

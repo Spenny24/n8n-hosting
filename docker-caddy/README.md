@@ -7,6 +7,8 @@ Get up and running with n8n on the following platforms:
 
 If you have questions after trying the tutorials, check out the [forums](https://community.n8n.io/).
 
+Before running the stack, copy `.env.example` to `.env` and update the values to match your environment.
+
 ## Prerequisites
 
 Self-hosting n8n requires technical knowledge, including:
