@@ -1,0 +1,360 @@
+{
+  "name": "Utility MCP Tools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1f191637-caec-4e2a-94af-bc14924e8ebb",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.workflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = items[0]?.json || {};\nconst tasks = Array.isArray(input.tasks) ? input.tasks : [];\nconst store = this.getWorkflowStaticData('global');\nstore.tasks = tasks;\nreturn [{ json: { domain: input.domain || 'utility', tasks } }];"
+      },
+      "id": "6f0c1546-ed68-4cb9-bdb6-512aafa7c0df",
+      "name": "Function - Extract Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.tasks.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "996a438a-112b-4ade-b1c6-4c1e268a05d3",
+      "name": "IF - Has Tasks",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const tasks = items[0].json.tasks || [];\nreturn tasks.map(task => ({ json: task }));"
+      },
+      "id": "2b634964-e7f8-4aa6-a63a-854dee8f6128",
+      "name": "Function - Fan Out",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "propertyName": "action",
+        "dataType": "string",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "summarize_notes"
+          },
+          {
+            "operation": "equal",
+            "value": "enrich_lead"
+          },
+          {
+            "operation": "equal",
+            "value": "sync_airtable"
+          },
+          {
+            "operation": "equal",
+            "value": "notify_team"
+          }
+        ]
+      },
+      "id": "17928f80-f4cb-40a1-b935-c36999476953",
+      "name": "Switch - Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "message": "Summarize these notes into crisp bullets with owners and due dates: {{$json.metadata.notes}}",
+            "sender": "user"
+          }
+        ]
+      },
+      "id": "2fe0b60c-f41a-4160-a84c-5865f4c305c4",
+      "name": "OpenAI - Summarize Notes",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 3,
+      "position": [
+        220,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "person",
+        "email": "={{$json.metadata.email}}"
+      },
+      "id": "a566344c-9e51-4f09-b845-7794cdce1c28",
+      "name": "Clearbit - Enrich Lead",
+      "type": "n8n-nodes-base.clearbit",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "application": "={{$env.AIRTABLE_APP_ID}}",
+        "table": "={{$env.AIRTABLE_PIPELINE_TABLE}}",
+        "id": "={{$json.metadata.recordId}}",
+        "updateAllFields": true,
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "={{$json.metadata.statusField || 'Status'}}",
+              "fieldValue": "={{$json.metadata.status}}"
+            },
+            {
+              "fieldId": "={{$json.metadata.nextStepField || 'Next Step'}}",
+              "fieldValue": "={{$json.metadata.nextStep}}"
+            }
+          ]
+        }
+      },
+      "id": "748f92e0-7e53-45ca-a63e-46b0d25e8db0",
+      "name": "Airtable - Sync Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "message",
+        "channel": "={{$env.SLACK_ALERT_CHANNEL}}",
+        "text": "={{$json.metadata.message}}",
+        "additionalFields": {
+          "mrkdwn": true
+        }
+      },
+      "id": "9f59ebbd-18bd-4dee-b9d3-d665394bb81a",
+      "name": "Slack - Notify Team",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nreturn items.map(item => {\n  const index = item.pairedItem?.item ?? 0;\n  const source = store.tasks?.[index] || {};\n  return { json: { domain: source.domain || 'utility', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "ad96ebca-8350-472f-a85c-abc91e867abb",
+      "name": "Function - Format Action Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "domain",
+              "value": "utility"
+            }
+          ],
+          "json": [
+            {
+              "name": "result",
+              "value": "={\"status\":\"skipped\",\"reason\":\"No utility tasks queued.\"}"
+            }
+          ]
+        }
+      },
+      "id": "c44f8dc0-ede6-4963-8b07-f9c45762d283",
+      "name": "Set - No Tasks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Function - Extract Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Extract Tasks": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Fan Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - No Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Fan Out": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route Action": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Summarize Notes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Clearbit - Enrich Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable - Sync Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack - Notify Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Summarize Notes": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clearbit - Enrich Lead": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Sync Record": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack - Notify Team": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - No Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
