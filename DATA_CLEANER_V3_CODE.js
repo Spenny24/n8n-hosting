@@ -87,7 +87,7 @@ for (let i = 0; i < items.length; i++) {
 
   // KPIs - flexible field matching
   const metricName = getField(item.json, 'Metric', 'metric', 'KPI', 'kpi', 'MetricName');
-  const metricValue = getField(item.json, 'Value', 'value', 'Amount', 'amount');
+  const metricValue = getField(item.json, 'Value', 'value', 'Vale', 'vale', 'Amount', 'amount');
 
   if (metricName && String(metricName).trim()) {
     const metric = String(metricName).toLowerCase();
