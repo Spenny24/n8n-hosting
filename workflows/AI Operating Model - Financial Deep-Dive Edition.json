@@ -1561,6 +1561,28 @@
         ]
       ]
     },
+    "1.3 Google Sheets - Tool Inventory": {
+      "main": [
+        [
+          {
+            "node": "Merge Discovery Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "1.4 KPI Snapshot - Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Merge Discovery Data",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
     "Merge Discovery Data": {
       "main": [
         [
@@ -1849,6 +1871,17 @@
             "node": "2.4b Benchmark Comparator",
             "type": "main",
             "index": 0
+          }
+        ]
+      ]
+    },
+    "2.4b Benchmark Comparator": {
+      "main": [
+        [
+          {
+            "node": "Merge Analysis Results",
+            "type": "main",
+            "index": 2
           }
         ]
       ]
