@@ -1,0 +1,380 @@
+{
+  "name": "Zero-Cost AI Shorts Factory (Reddit \u2192 FLUX + Kokoro)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "Manual Trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "subreddit",
+              "value": "AskReddit"
+            },
+            {
+              "name": "outputDir",
+              "value": "/data/shorts"
+            },
+            {
+              "name": "llmEndpoint",
+              "value": "http://host.docker.internal:11434/v1/chat/completions"
+            },
+            {
+              "name": "fluxEndpoint",
+              "value": "http://host.docker.internal:7860/prompt"
+            },
+            {
+              "name": "ttsEndpoint",
+              "value": "http://host.docker.internal:50021/api/tts"
+            },
+            {
+              "name": "bgmPath",
+              "value": "/data/assets/bgm.mp3"
+            }
+          ],
+          "number": [
+            {
+              "name": "maxScenes",
+              "value": 7
+            },
+            {
+              "name": "fps",
+              "value": 30
+            },
+            {
+              "name": "width",
+              "value": 1080
+            },
+            {
+              "name": "height",
+              "value": 1920
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Workflow Config",
+      "name": "Workflow Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/{{$json.subreddit}}/top.json?limit=12&t=day",
+        "responseFormat": "json"
+      },
+      "id": "Fetch Reddit",
+      "name": "Fetch Reddit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const posts = items[0].json.data.children.map((p) => p.data)\n  .filter((p) => p.selftext && p.selftext.length > 400);\nconst pick = posts[0] || items[0].json.data.children[0].data;\nreturn [{ json: {\n  title: pick.title,\n  story: pick.selftext,\n  author: pick.author,\n  url: pick.url,\n  nsfw: pick.over_18,\n}}];"
+      },
+      "id": "Select Story",
+      "name": "Select Story",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{$json.llmEndpoint}}",
+        "responseFormat": "json",
+        "options": {
+          "bodyContentCustom": "json"
+        },
+        "body": "={\n  \"model\": \"gpt-4o-mini\",\n  \"temperature\": 0.55,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a viral YouTube Shorts scriptwriter. Return strict JSON with keys: title, hook, scenes (array with visual_prompt,narration,captions,duration_seconds up to {{$json.maxScenes}}). Keep language PG-13.\"\n    },\n    {\"role\": \"user\",\"content\": \"{{$json.story}}\"}\n  ]\n}"
+      },
+      "id": "Script with Local LLM",
+      "name": "Script with Local LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const payload = items[0].json;\nconst parsed = payload.choices?.[0]?.message?.content || JSON.stringify(payload);\nconst data = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;\nreturn [{ json: { title: data.title, hook: data.hook, scenes: data.scenes } }];"
+      },
+      "id": "Parse Scene JSON",
+      "name": "Parse Scene JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "splitOut",
+        "fieldToSplitOut": "scenes"
+      },
+      "id": "Split Scenes",
+      "name": "Split Scenes",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        1580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{$json.fluxEndpoint}}",
+        "responseFormat": "json",
+        "options": {
+          "bodyContentCustom": "json"
+        },
+        "body": "={\n  \"prompt\": \"{{$json.visual_prompt}}. Style: cinematic, portrait, 16:9 -> upscale to 9:16.\",\n  \"width\": {{$json.width}},\n  \"height\": {{$json.height}},\n  \"steps\": 30\n}"
+      },
+      "id": "Generate Scene Image (FLUX)",
+      "name": "Generate Scene Image (FLUX)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1820,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "{{$json.ttsEndpoint}}",
+        "responseFormat": "json",
+        "options": {
+          "bodyContentCustom": "json"
+        },
+        "body": "={\n  \"text\": \"{{$json.narration}}\",\n  \"voice\": \"kokoro-base\",\n  \"sample_rate\": 24000\n}"
+      },
+      "id": "Generate Voice (Kokoro)",
+      "name": "Generate Voice (Kokoro)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1820,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "Merge Audio + Visual",
+      "name": "Merge Audio + Visual",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const fs = require('fs');\nconst path = require('path');\nconst root = $item(0).$node[\"Workflow Config\"].json.outputDir;\nconst idx = $itemIndex;\nconst sceneDir = path.join(root, `scene-${idx}`);\nfs.mkdirSync(sceneDir, { recursive: true });\nconst imageB64 = items[0].json.image || items[0].json.base64 || items[0].json.output || items[0].json.data;\nif (!imageB64) throw new Error('Missing image payload from FLUX');\nfs.writeFileSync(path.join(sceneDir, 'image.png'), Buffer.from(imageB64, 'base64'));\nconst audioB64 = items[1].json.audio || items[1].json.wav || items[1].json.output || items[1].json.data;\nif (!audioB64) throw new Error('Missing audio payload from TTS');\nfs.writeFileSync(path.join(sceneDir, 'voice.wav'), Buffer.from(audioB64, 'base64'));\nreturn [{ json: {\n  sceneIndex: idx,\n  caption: items[0].json.captions || items[0].json.caption || $json.captions,\n  narration: $json.narration,\n  duration: $json.duration_seconds || 5,\n  imagePath: path.join(sceneDir, 'image.png'),\n  audioPath: path.join(sceneDir, 'voice.wav'),\n  outputDir: root,\n  fps: $item(0).$node[\"Workflow Config\"].json.fps,\n  width: $item(0).$node[\"Workflow Config\"].json.width,\n  height: $item(0).$node[\"Workflow Config\"].json.height,\n  bgmPath: $item(0).$node[\"Workflow Config\"].json.bgmPath,\n}}];"
+      },
+      "id": "Persist Scene Assets",
+      "name": "Persist Scene Assets",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        2260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const scenes = items.map((item) => item.json);\nconst first = scenes[0] || {};\nreturn [{ json: {\n  title: $item(0).$node[\"Parse Scene JSON\"].json.title,\n  outputDir: first.outputDir,\n  fps: first.fps,\n  width: first.width,\n  height: first.height,\n  bgmPath: first.bgmPath,\n  scenes,\n}}];"
+      },
+      "id": "Build Render Plan",
+      "name": "Build Render Plan",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "#!/bin/bash\n                set -euo pipefail\n                ROOT=\"{{$json.outputDir}}\"\n                TITLE=\"{{$json.title || 'short'}}\"\n                FPS={{$json.fps}}\n                WIDTH={{$json.width}}\n                HEIGHT={{$json.height}}\n                BGM=\"{{$json.bgmPath}}\"\n                mkdir -p \"$ROOT/build\"\n                python3 - <<'PYCODE'\nimport json, subprocess\nfrom pathlib import Path\nroot = Path(\"{{$json.outputDir}}\")\nscenes = json.loads('''{{$json.scenes | toJson}}''')\ninputs = []\nfor s in scenes:\n    scene_dir = Path(s['imagePath']).parent\n    img = Path(s['imagePath'])\n    wav = Path(s['audioPath'])\n    out = scene_dir / 'scene.mp4'\n    cmd = [\n        'ffmpeg','-y',\n        '-loop','1','-i',str(img),\n        '-i',str(wav),\n        '-vf',f'scale={{$json.width}}:{{$json.height}}:force_original_aspect_ratio=cover',\n        '-c:v','libx264','-t',str(s.get('duration',5)),\n        '-pix_fmt','yuv420p','-shortest',str(out)\n    ]\n    subprocess.run(cmd, check=True)\n    inputs.append(out)\nlist_path = root / 'build/concat.txt'\nwith open(list_path, 'w') as f:\n    for p in inputs:\n        f.write(f\"file '{p}'\n\")\nfinal = root / f'build/{TITLE}.mp4'\ncmd = ['ffmpeg','-y','-f','concat','-safe','0','-i',str(list_path),'-i','{{{{$json.bgmPath}}}}','-map','0:v','-map','1:a','-shortest','-c:v','libx264','-c:a','aac','-b:a','192k',str(final)]\nsubprocess.run(cmd, check=True)\nprint(f'Output => {final}')\nPYCODE"
+      },
+      "id": "Assemble Video (ffmpeg)",
+      "name": "Assemble Video (ffmpeg)",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Config": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reddit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Reddit": {
+      "main": [
+        [
+          {
+            "node": "Select Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Story": {
+      "main": [
+        [
+          {
+            "node": "Script with Local LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script with Local LLM": {
+      "main": [
+        [
+          {
+            "node": "Parse Scene JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Scene JSON": {
+      "main": [
+        [
+          {
+            "node": "Split Scenes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Scenes": {
+      "main": [
+        [
+          {
+            "node": "Generate Scene Image (FLUX)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Voice (Kokoro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Scene Image (FLUX)": {
+      "main": [
+        [
+          {
+            "node": "Merge Audio + Visual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Voice (Kokoro)": {
+      "main": [
+        [
+          {
+            "node": "Merge Audio + Visual",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Audio + Visual": {
+      "main": [
+        [
+          {
+            "node": "Persist Scene Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Scene Assets": {
+      "main": [
+        [
+          {
+            "node": "Build Render Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Render Plan": {
+      "main": [
+        [
+          {
+            "node": "Assemble Video (ffmpeg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "version": 2
+}
