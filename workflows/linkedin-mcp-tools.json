@@ -1,0 +1,379 @@
+{
+  "name": "LinkedIn MCP Tools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "39bcc677-3bd9-49e8-86a6-0d369e84c033",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.workflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = items[0]?.json || {};\nconst tasks = Array.isArray(input.tasks) ? input.tasks : [];\nconst store = this.getWorkflowStaticData('global');\nstore.tasks = tasks;\nreturn [{ json: { domain: input.domain || 'linkedin', tasks } }];"
+      },
+      "id": "e83671b5-9291-47be-9bfa-ca79198f9b25",
+      "name": "Function - Extract Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.tasks.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "831eeaa9-264a-4d41-a28e-027dd0338fe0",
+      "name": "IF - Has Tasks",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const tasks = items[0].json.tasks || [];\nreturn tasks.map(task => ({ json: task }));"
+      },
+      "id": "35602457-3698-40b6-9b3a-65f6b7257c81",
+      "name": "Function - Fan Out",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "propertyName": "action",
+        "dataType": "string",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "capture_inbox"
+          },
+          {
+            "operation": "equal",
+            "value": "send_message"
+          },
+          {
+            "operation": "equal",
+            "value": "post_update"
+          },
+          {
+            "operation": "equal",
+            "value": "sync_profile"
+          }
+        ]
+      },
+      "id": "efdd7403-ed0d-4452-a644-887aa4182601",
+      "name": "Switch - Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{`https://api.apify.com/v2/actor-tasks/${$env.APIFY_LINKEDIN_INBOX_TASK}/run-sync`}}",
+        "method": "POST",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "={{$env.APIFY_TOKEN}}"
+            }
+          ]
+        },
+        "jsonParameters": true,
+        "options": {
+          "timeout": 300000
+        },
+        "bodyParametersJson": "={{ JSON.stringify($json.metadata || {}) }}"
+      },
+      "id": "5e14e976-6f6b-40a8-bf1f-0ccbb2358645",
+      "name": "Apify - Capture Inbox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LINKEDIN_AUTOMATION_URL}}/messages",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ JSON.stringify({ recipient: $json.metadata.profileId, body: $json.metadata.body, subject: $json.metadata.subject, attachments: $json.metadata.attachments }) }}",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{`Bearer ${$env.LINKEDIN_AUTOMATION_TOKEN}`}}"
+            }
+          ]
+        }
+      },
+      "id": "fd0762e3-0ebb-4ce6-81a2-fb9163f5ecd2",
+      "name": "HTTP - Send DM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LINKEDIN_AUTOMATION_URL}}/posts",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ JSON.stringify({ body: $json.metadata.body, visibility: $json.metadata.visibility || 'CONNECTIONS', media: $json.metadata.media }) }}",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{`Bearer ${$env.LINKEDIN_AUTOMATION_TOKEN}`}}"
+            }
+          ]
+        }
+      },
+      "id": "626d234e-2118-4ff9-b609-64ce4a2d8a8a",
+      "name": "HTTP - Publish Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.LINKEDIN_AUTOMATION_URL}}/profiles/{{$json.metadata.profileId}}",
+        "method": "GET",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{`Bearer ${$env.LINKEDIN_AUTOMATION_TOKEN}`}}"
+            }
+          ]
+        }
+      },
+      "id": "b903b35f-deaf-42bc-9b38-34de7fba4f3b",
+      "name": "HTTP - Sync Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nreturn items.map(item => {\n  const index = item.pairedItem?.item ?? 0;\n  const source = store.tasks?.[index] || {};\n  return { json: { domain: source.domain || 'linkedin', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "4a8b37d0-7979-46f5-b80e-e4cf2ad4a031",
+      "name": "Function - Format Action Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "domain",
+              "value": "linkedin"
+            }
+          ],
+          "json": [
+            {
+              "name": "result",
+              "value": "={\"status\":\"skipped\",\"reason\":\"No LinkedIn tasks queued.\"}"
+            }
+          ]
+        }
+      },
+      "id": "694c9e29-e087-4cdb-b2de-24fb237084e5",
+      "name": "Set - No Tasks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Function - Extract Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Extract Tasks": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Fan Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - No Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Fan Out": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route Action": {
+      "main": [
+        [
+          {
+            "node": "Apify - Capture Inbox",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Send DM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Publish Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP - Sync Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify - Capture Inbox": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Send DM": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Publish Update": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Sync Profile": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - No Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

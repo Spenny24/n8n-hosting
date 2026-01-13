@@ -1,0 +1,344 @@
+{
+  "name": "Google Drive MCP Tools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1c4ee6a1-f6b6-48f8-a6ef-0b875eff967a",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.workflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = items[0]?.json || {};\nconst tasks = Array.isArray(input.tasks) ? input.tasks : [];\nconst store = this.getWorkflowStaticData('global');\nstore.tasks = tasks;\nreturn [{ json: { domain: input.domain || 'drive', tasks } }];"
+      },
+      "id": "69e12243-03c3-4c66-89f6-ea60dd0aaa7b",
+      "name": "Function - Extract Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.tasks.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "70545089-2fb6-4ce9-b5bb-2d47f6c3d599",
+      "name": "IF - Has Tasks",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const tasks = items[0].json.tasks || [];\nreturn tasks.map(task => ({ json: task }));"
+      },
+      "id": "88a0734b-1e2d-43ca-a298-71c98214aebd",
+      "name": "Function - Fan Out",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "propertyName": "action",
+        "dataType": "string",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "upload_file"
+          },
+          {
+            "operation": "equal",
+            "value": "create_folder"
+          },
+          {
+            "operation": "equal",
+            "value": "update_permissions"
+          },
+          {
+            "operation": "equal",
+            "value": "mirror_deal_folder"
+          }
+        ]
+      },
+      "id": "263c113f-ac9d-4a33-a2f8-2cc776912311",
+      "name": "Switch - Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "binaryData": false,
+        "fileContent": "={{$json.metadata.fileContent}}",
+        "fileName": "={{$json.metadata.fileName}}",
+        "parents": "={{$json.metadata.parentId || $env.GDRIVE_DEALS_FOLDER}}"
+      },
+      "id": "72dda3ea-3510-4202-ba66-6156884ddf52",
+      "name": "Google Drive - Upload File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "createFolder",
+        "name": "={{$json.metadata.folderName}}",
+        "parents": "={{$json.metadata.parentId || $env.GDRIVE_DEALS_FOLDER}}"
+      },
+      "id": "6e45cde7-a548-4b19-bbe4-811a6cb6c900",
+      "name": "Google Drive - Create Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": "={{$json.metadata.fileId}}",
+        "role": "={{$json.metadata.role || 'writer'}}",
+        "type": "={{$json.metadata.type || 'user'}}",
+        "emailAddress": "={{$json.metadata.email}}",
+        "sendNotificationEmail": true
+      },
+      "id": "7b194180-21ef-455c-9fba-487392fdca49",
+      "name": "Google Drive - Update Permissions",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": "={{$json.metadata.templateId}}",
+        "parents": "={{$json.metadata.parentId || $env.GDRIVE_DEALS_FOLDER}}",
+        "name": "={{$json.metadata.fileName}}"
+      },
+      "id": "3af871c7-9a5c-4ed6-831a-86d82bcce20b",
+      "name": "Google Drive - Mirror Deal Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        220,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nreturn items.map(item => {\n  const index = item.pairedItem?.item ?? 0;\n  const source = store.tasks?.[index] || {};\n  return { json: { domain: source.domain || 'drive', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "59696122-78e6-4c36-bd04-6aae96257127",
+      "name": "Function - Format Action Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "domain",
+              "value": "drive"
+            }
+          ],
+          "json": [
+            {
+              "name": "result",
+              "value": "={\"status\":\"skipped\",\"reason\":\"No drive tasks queued.\"}"
+            }
+          ]
+        }
+      },
+      "id": "0409866f-bd13-4beb-9159-d3b7bb850c38",
+      "name": "Set - No Tasks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Function - Extract Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Extract Tasks": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Fan Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - No Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Fan Out": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route Action": {
+      "main": [
+        [
+          {
+            "node": "Google Drive - Upload File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive - Create Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive - Update Permissions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Drive - Mirror Deal Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Upload File": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Create Folder": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Update Permissions": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive - Mirror Deal Folder": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - No Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
