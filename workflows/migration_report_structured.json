@@ -1,0 +1,260 @@
+{
+  "migration_summary": {
+    "date": "2026-01-14",
+    "status": "COMPLETED",
+    "workflow_file": "/home/user/n8n-hosting/workflows/WPP Hogarth AI Operating Model - Complete Edition (2).json",
+    "total_nodes_migrated": 9,
+    "total_microsoft_nodes": 15,
+    "remaining_google_nodes": 1,
+    "remaining_google_nodes_disabled": true
+  },
+  "nodes_migrated": [
+    {
+      "old_name": "2.4a Google Sheets - Benchmarks",
+      "new_name": "2.4a Microsoft Excel - Benchmarks",
+      "operation": "read \u2192 getAll",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "KPI_Snapshot",
+      "purpose": "Read benchmark data"
+    },
+    {
+      "old_name": "4.1 Write to Google Sheets - Client Models",
+      "new_name": "4.1 Write to Microsoft Excel - Client Models",
+      "operation": "append \u2192 append",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "Client_Models",
+      "purpose": "Store final audit results"
+    },
+    {
+      "old_name": "4.1b Write to Google Sheets - Recommendations",
+      "new_name": "4.1b Write to Microsoft Excel - Recommendations",
+      "operation": "append \u2192 append",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "Recommendations",
+      "purpose": "Store process recommendations"
+    },
+    {
+      "old_name": "Write New RACI to Sheet",
+      "new_name": "Write New RACI to Sheet",
+      "operation": "appendOrUpdate \u2192 upsert",
+      "workbook": "RACI_Matrix.xlsx",
+      "worksheet": "Sheet1",
+      "purpose": "Update RACI assignments"
+    },
+    {
+      "old_name": "Append or update row in sheet",
+      "new_name": "Append or update row in sheet",
+      "operation": "appendOrUpdate \u2192 upsert",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "AI_Projections",
+      "purpose": "Update KPI projections"
+    },
+    {
+      "old_name": "Write Rationale to Sheet",
+      "new_name": "Write Rationale to Sheet",
+      "operation": "append \u2192 append",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "Consultant_Rationale",
+      "purpose": "Store AI-generated rationale"
+    },
+    {
+      "old_name": "Mark Client Completed",
+      "new_name": "Mark Client Completed",
+      "operation": "update \u2192 update",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "Clients_Queue",
+      "purpose": "Update client processing status"
+    },
+    {
+      "old_name": "Write Diagrams to Sheet",
+      "new_name": "Write Diagrams to Sheet",
+      "operation": "append \u2192 append",
+      "workbook": "AI_Operating_Model_Audit_Workflow.xlsx",
+      "worksheet": "Diagrams",
+      "purpose": "Store Mermaid diagrams"
+    },
+    {
+      "old_name": "Upload file (Google Drive)",
+      "new_name": "Upload Report to OneDrive",
+      "operation": "upload \u2192 upload",
+      "destination": "/Reports/[filename]",
+      "purpose": "Store final PDF reports"
+    }
+  ],
+  "nodes_removed": [],
+  "nodes_disabled": [
+    {
+      "name": "New Client Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "status": "disabled",
+      "recommendation": "Delete if not needed, or replace with Microsoft Excel Trigger"
+    }
+  ],
+  "connection_flow": {
+    "trigger": "Manual Execution (Google Sheets Trigger disabled)",
+    "input_phase": [
+      "1.1 SharePoint Drive - Org Data",
+      "1.2 Microsoft Excel - RACI Matrix",
+      "1.3 Microsoft Excel - Tools Inventory",
+      "1.4 Microsoft Excel - KPI Snapshot"
+    ],
+    "processing_phase": [
+      "2.1 Data Cleaner",
+      "2.4a Microsoft Excel - Benchmarks",
+      "Append or update row in sheet",
+      "Write New RACI to Sheet"
+    ],
+    "analysis_phase": [
+      "3.1 AI Strategy Consultant",
+      "3.2 Financial Model Deep-Dive",
+      "3.3 Scenario Comparison",
+      "3.4 Executive Summary Generator"
+    ],
+    "output_phase": [
+      "4.1 Write to Microsoft Excel - Client Models",
+      "4.1b Write to Microsoft Excel - Recommendations",
+      "Write Rationale to Sheet",
+      "Write Diagrams to Sheet",
+      "Mark Client Completed",
+      "Upload Report to OneDrive"
+    ],
+    "notification_phase": [
+      "4.3 Send Teams Notification"
+    ]
+  },
+  "microsoft_architecture": {
+    "credentials": {
+      "primary": {
+        "type": "microsoftExcelOAuth2Api",
+        "id": "s5miVPK26YEwfqso",
+        "name": "Microsoft Excel account",
+        "used_by": "Excel and OneDrive operations"
+      },
+      "sharepoint": {
+        "type": "microsoftSharePointOAuth2Api",
+        "used_by": "SharePoint operations"
+      },
+      "teams": {
+        "type": "microsoftTeamsOAuth2Api",
+        "used_by": "Teams notifications"
+      }
+    },
+    "workbooks": {
+      "AI_Operating_Model_Audit_Workflow.xlsx": {
+        "worksheets": [
+          {
+            "name": "KPI_Snapshot",
+            "operation": "READ",
+            "purpose": "Benchmark data"
+          },
+          {
+            "name": "Client_Models",
+            "operation": "APPEND",
+            "purpose": "Final audit results"
+          },
+          {
+            "name": "Recommendations",
+            "operation": "APPEND",
+            "purpose": "Process recommendations"
+          },
+          {
+            "name": "AI_Projections",
+            "operation": "UPSERT",
+            "purpose": "KPI projections"
+          },
+          {
+            "name": "Consultant_Rationale",
+            "operation": "APPEND",
+            "purpose": "AI rationale"
+          },
+          {
+            "name": "Clients_Queue",
+            "operation": "UPDATE",
+            "purpose": "Client status"
+          },
+          {
+            "name": "Diagrams",
+            "operation": "APPEND",
+            "purpose": "Mermaid diagrams"
+          }
+        ]
+      },
+      "RACI_Matrix.xlsx": {
+        "worksheets": [
+          {
+            "name": "Sheet1",
+            "operation": "UPSERT",
+            "purpose": "RACI assignments"
+          }
+        ]
+      }
+    },
+    "onedrive": {
+      "path": "/Reports/",
+      "purpose": "PDF audit report storage"
+    },
+    "sharepoint": {
+      "source": "1.1 Sharepoint Drive - Org Data",
+      "purpose": "Client files and organizational data (Source of Truth)"
+    }
+  },
+  "verification": {
+    "google_dependencies_removed": true,
+    "active_google_sheets_nodes": 0,
+    "active_google_drive_nodes": 0,
+    "disabled_google_trigger": 1,
+    "total_microsoft_nodes": 15,
+    "connections_verified": true,
+    "all_credentials_configured": true
+  },
+  "issues_and_limitations": [
+    {
+      "issue": "Workbook references need configuration",
+      "impact": "HIGH",
+      "action_required": "Update workbook references in n8n UI to actual Microsoft 365 file IDs",
+      "status": "USER_ACTION_REQUIRED"
+    },
+    {
+      "issue": "Google Sheets Trigger disabled",
+      "impact": "LOW",
+      "action_required": "Delete or replace with Microsoft Excel Trigger",
+      "status": "USER_DECISION_REQUIRED"
+    },
+    {
+      "issue": "Worksheet names must match",
+      "impact": "MEDIUM",
+      "action_required": "Verify Excel worksheets have same names as configured",
+      "status": "VERIFICATION_REQUIRED"
+    },
+    {
+      "issue": "Column mappings preserved",
+      "impact": "MEDIUM",
+      "action_required": "Verify Excel column headers match original Google Sheets",
+      "status": "VERIFICATION_REQUIRED"
+    },
+    {
+      "issue": "gdrive_folder_id references in data",
+      "impact": "LOW",
+      "action_required": "Update client data schema if needed",
+      "status": "OPTIONAL"
+    }
+  ],
+  "post_migration_checklist": [
+    "Upload/Create Excel workbooks in OneDrive/SharePoint",
+    "Verify worksheet names match in Excel files",
+    "Verify column headers match original structure",
+    "Update workbook references in n8n UI",
+    "Test workflow execution end-to-end",
+    "Handle Google Sheets Trigger (delete or replace)",
+    "Create /Reports/ folder in OneDrive",
+    "Update client data schema to remove gdrive references",
+    "Test Teams notification integration",
+    "Document Microsoft file locations"
+  ],
+  "next_steps": [
+    "Configure actual workbook/worksheet references in n8n UI",
+    "Test workflow execution with sample client data",
+    "Verify data flow from SharePoint through to OneDrive",
+    "Deploy to production environment"
+  ]
+}

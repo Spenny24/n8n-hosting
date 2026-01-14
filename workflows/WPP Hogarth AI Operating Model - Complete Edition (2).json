@@ -173,30 +173,35 @@
     },
     {
       "parameters": {
-        "documentId": {
+        "operation": "getAll",
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
-          "cachedResultName": "AI Operating Model Audit Workflow",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit?usp=drivesdk"
+          "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 1961040677,
+          "value": "KPI_Snapshot",
           "mode": "list",
-          "cachedResultName": "KPI_Snapshot",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=1961040677"
+          "cachedResultName": "KPI_Snapshot"
         },
         "options": {}
       },
       "id": "e01ec63a-f5de-452a-9db8-a119e64d6e67",
-      "name": "2.4a Google Sheets - Benchmarks",
-      "type": "n8n-nodes-base.googleSheets",
+      "name": "2.4a Microsoft Excel - Benchmarks",
+      "type": "n8n-nodes-base.microsoftExcel",
       "position": [
         6576,
         9056
       ],
-      "typeVersion": 4.5
+      "typeVersion": 2.2,
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -446,19 +451,17 @@
     {
       "parameters": {
         "operation": "append",
-        "documentId": {
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
-          "cachedResultName": "AI Operating Model Audit Workflow",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit?usp=drivesdk"
+          "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 493636114,
+          "value": "Client_Models",
           "mode": "list",
-          "cachedResultName": "Client_Models",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=493636114"
+          "cachedResultName": "Client_Models"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -664,14 +667,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         9104,
         8576
       ],
       "id": "60600b57-c74f-40cd-ace0-8940e23c5b8e",
-      "name": "4.1 Write to Google Sheets - Client Models"
+      "name": "4.1 Write to Microsoft Excel - Client Models",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -688,20 +697,18 @@
     },
     {
       "parameters": {
-        "operation": "appendOrUpdate",
-        "documentId": {
+        "operation": "upsert",
+        "workbook": {
           "__rl": true,
-          "value": "1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8",
+          "value": "RACI_Matrix.xlsx",
           "mode": "list",
-          "cachedResultName": "raci_id",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8/edit?usp=drivesdk"
+          "cachedResultName": "raci_id"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": "gid=0",
+          "value": "Sheet1",
           "mode": "list",
-          "cachedResultName": "yes",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8/edit#gid=0"
+          "cachedResultName": "Sheet1"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -816,14 +823,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         7792,
         9232
       ],
       "id": "1cea68a6-6d08-4603-ba91-041cae9e410c",
-      "name": "Write New RACI to Sheet"
+      "name": "Write New RACI to Sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -840,20 +853,18 @@
     },
     {
       "parameters": {
-        "operation": "appendOrUpdate",
-        "documentId": {
+        "operation": "upsert",
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
-          "cachedResultName": "AI Operating Model Audit Workflow",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit?usp=drivesdk"
+          "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 721238454,
+          "value": "AI_Projections",
           "mode": "list",
-          "cachedResultName": "AI_Projections",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=721238454"
+          "cachedResultName": "AI_Projections"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -957,14 +968,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         8176,
         8768
       ],
       "id": "ba92760b-96a0-4b9e-9160-7504a71b3e4e",
-      "name": "Append or update row in sheet"
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -981,27 +998,25 @@
     },
     {
       "parameters": {
-        "name": "={{ $json.binary.data.fileName }}",
-        "driveId": {
-          "__rl": true,
-          "value": "1ecFCQPJIxS7pwmswxfHvnLqGe3garKlb",
-          "mode": "id"
-        },
-        "folderId": {
-          "__rl": true,
-          "value": "1ecFCQPJIxS7pwmswxfHvnLqGe3garKlb",
-          "mode": "id"
-        },
+        "operation": "upload",
+        "path": "/Reports/={ $json.binary.data.fileName }",
+        "binaryData": true,
         "options": {}
       },
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 2,
       "position": [
         9184,
         8768
       ],
       "id": "f0058dbf-f6ca-4a8c-8e57-e839fd20fc36",
-      "name": "Upload file"
+      "name": "Upload Report to OneDrive",
+      "credentials": {
+        "microsoftOneDriveOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft OneDrive account"
+        }
+      }
     },
     {
       "parameters": {
@@ -1019,19 +1034,17 @@
     {
       "parameters": {
         "operation": "append",
-        "documentId": {
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
-          "cachedResultName": "AI Operating Model Audit Workflow",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit?usp=drivesdk"
+          "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 2030903910,
+          "value": "Recommendations",
           "mode": "list",
-          "cachedResultName": "Recommendations",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=2030903910"
+          "cachedResultName": "Recommendations"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1144,14 +1157,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         8912,
         8960
       ],
       "id": "b79bb4d5-7c0a-4554-bbf4-b084bfb14d35",
-      "name": "4.1b Write to Google Sheets - Recommendations"
+      "name": "4.1b Write to Microsoft Excel - Recommendations",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -1211,19 +1230,17 @@
     {
       "parameters": {
         "operation": "append",
-        "documentId": {
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
-          "cachedResultName": "AI Operating Model Audit Workflow",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit?usp=drivesdk"
+          "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 295729259,
+          "value": "Consultant_Rationale",
           "mode": "list",
-          "cachedResultName": "Consultant_Rationale",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=295729259"
+          "cachedResultName": "Consultant_Rationale"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1277,14 +1294,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         9376,
         9248
       ],
       "id": "35369318-dd9f-473e-98e9-a96f25aba8f4",
-      "name": "Write Rationale to Sheet"
+      "name": "Write Rationale to Sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -1360,18 +1383,17 @@
     {
       "parameters": {
         "operation": "update",
-        "documentId": {
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
           "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 1305948700,
+          "value": "Clients_Queue",
           "mode": "list",
-          "cachedResultName": "Clients_Queue",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=1305948700"
+          "cachedResultName": "Clients_Queue"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1485,14 +1507,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         9616,
         8992
       ],
       "id": "8259faa0-c5f4-4510-99d0-8faf0999f3fd",
-      "name": "Mark Client Completed"
+      "name": "Mark Client Completed",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -1555,18 +1583,17 @@
     {
       "parameters": {
         "operation": "append",
-        "documentId": {
+        "workbook": {
           "__rl": true,
-          "value": "1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M",
+          "value": "AI_Operating_Model_Audit_Workflow.xlsx",
           "mode": "list",
           "cachedResultName": "AI Operating Model Audit Workflow"
         },
-        "sheetName": {
+        "worksheet": {
           "__rl": true,
-          "value": 1440980504,
+          "value": "Diagrams",
           "mode": "list",
-          "cachedResultName": "Diagrams",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1DgpBOkGr6dJWgsFmUNZq1uAO8oHbmWjtBUmDAbAdE4M/edit#gid=1440980504"
+          "cachedResultName": "Diagrams"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1640,14 +1667,20 @@
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.5,
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
       "position": [
         8336,
         8944
       ],
       "id": "641c6f43-28e8-4dc3-b701-569cf8d40e13",
-      "name": "Write Diagrams to Sheet"
+      "name": "Write Diagrams to Sheet",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "s5miVPK26YEwfqso",
+          "name": "Microsoft Excel account"
+        }
+      }
     },
     {
       "parameters": {
@@ -1927,6 +1960,22 @@
         6864,
         9128
       ]
+    },
+    {
+      "parameters": {
+        "content": "## MICROSOFT SUITE ARCHITECTURE\n\n**Migration Completed:** All Google Suite nodes have been migrated to Microsoft 365.\n\n**INPUT NODES (Data Sources):**\n\u2022 1.1 SharePoint Drive - Org Data: Client files and organizational data\n\u2022 1.2 Microsoft Excel - RACI Matrix: Responsibility assignments\n\u2022 1.3 Microsoft Excel - Tools Inventory: Current tool stack\n\u2022 1.4 Microsoft Excel - KPI Snapshot: Key performance indicators\n\n**PROCESSING NODES (Read/Write Operations):**\n\u2022 2.4a Microsoft Excel - Benchmarks: Reads industry benchmarks\n\u2022 Append or update row in sheet: Updates AI projections\n\u2022 Write New RACI to Sheet: Updates RACI matrix\n\n**OUTPUT NODES (Results Storage):**\n\u2022 4.1 Write to Microsoft Excel - Client Models: Stores audit results\n\u2022 4.1b Write to Microsoft Excel - Recommendations: Stores recommendations\n\u2022 Write Rationale to Sheet: Stores consultant rationale\n\u2022 Write Diagrams to Sheet: Stores generated diagrams\n\u2022 Mark Client Completed: Updates client status\n\u2022 Upload Report to OneDrive: Stores final PDF reports\n\n**CREDENTIALS:**\nAll Microsoft nodes use: microsoftExcelOAuth2Api (ID: s5miVPK26YEwfqso)\n\n**WORKBOOKS:**\n\u2022 Primary: AI_Operating_Model_Audit_Workflow.xlsx\n\u2022 Secondary: RACI_Matrix.xlsx\n\n**IMPORTANT NOTES:**\n- Google Sheets Trigger is disabled (manual execution mode)\n- Replace with Microsoft Excel Trigger if auto-triggering needed\n- All workbook/worksheet references may need adjustment to match actual Microsoft file IDs\n- SharePoint is the authoritative source for client data",
+        "height": 560,
+        "width": 480,
+        "color": 4
+      },
+      "id": "ms-suite-architecture-doc",
+      "name": "Microsoft Suite Architecture",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        8200
+      ]
     }
   ],
   "pinData": {},
@@ -1967,7 +2016,7 @@
             "index": 0
           },
           {
-            "node": "2.4a Google Sheets - Benchmarks",
+            "node": "2.4a Microsoft Excel - Benchmarks",
             "type": "main",
             "index": 0
           },
@@ -2053,7 +2102,7 @@
       "main": [
         [
           {
-            "node": "4.1 Write to Google Sheets - Client Models",
+            "node": "4.1 Write to Microsoft Excel - Client Models",
             "type": "main",
             "index": 0
           },
@@ -2145,18 +2194,7 @@
       "main": [
         [
           {
-            "node": "Upload file",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload file": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Notifications",
+            "node": "Upload Report to OneDrive",
             "type": "main",
             "index": 0
           }
@@ -2190,44 +2228,11 @@
         ]
       ]
     },
-    "4.1 Write to Google Sheets - Client Models": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Notifications",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "4.1b Write to Google Sheets - Recommendations": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Notifications",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "2.4a Google Sheets - Benchmarks": {
-      "main": [
-        [
-          {
-            "node": "2.4a2 Merge Benchmark Sources",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
     "Extract Recommendations Data": {
       "main": [
         [
           {
-            "node": "4.1b Write to Google Sheets - Recommendations",
+            "node": "4.1b Write to Microsoft Excel - Recommendations",
             "type": "main",
             "index": 0
           }
@@ -2434,6 +2439,50 @@
         [
           {
             "node": "2.4b Benchmark Comparator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.4a Microsoft Excel - Benchmarks": {
+      "main": [
+        [
+          {
+            "node": "2.4a2 Merge Benchmark Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "4.1 Write to Microsoft Excel - Client Models": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1b Write to Microsoft Excel - Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Report to OneDrive": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Notifications",
             "type": "main",
             "index": 0
           }

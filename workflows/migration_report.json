@@ -1,0 +1,55 @@
+{
+  "migration_date": "2026-01-14T14:05:30.388731",
+  "nodes_migrated": [
+    {
+      "old_name": "2.4a Google Sheets - Benchmarks",
+      "new_name": "2.4a Microsoft Excel - Benchmarks",
+      "id": "e01ec63a-f5de-452a-9db8-a119e64d6e67",
+      "operation": "read"
+    },
+    {
+      "old_name": "4.1 Write to Google Sheets - Client Models",
+      "new_name": "4.1 Write to Microsoft Excel - Client Models",
+      "id": "60600b57-c74f-40cd-ace0-8940e23c5b8e",
+      "operation": "append"
+    },
+    {
+      "old_name": "Write New RACI to Sheet",
+      "new_name": "Write New RACI to Sheet",
+      "id": "1cea68a6-6d08-4603-ba91-041cae9e410c",
+      "operation": "appendOrUpdate"
+    },
+    {
+      "old_name": "Append or update row in sheet",
+      "new_name": "Append or update row in sheet",
+      "id": "ba92760b-96a0-4b9e-9160-7504a71b3e4e",
+      "operation": "appendOrUpdate"
+    },
+    {
+      "old_name": "4.1b Write to Google Sheets - Recommendations",
+      "new_name": "4.1b Write to Microsoft Excel - Recommendations",
+      "id": "b79bb4d5-7c0a-4554-bbf4-b084bfb14d35",
+      "operation": "append"
+    },
+    {
+      "old_name": "Write Rationale to Sheet",
+      "new_name": "Write Rationale to Sheet",
+      "id": "35369318-dd9f-473e-98e9-a96f25aba8f4",
+      "operation": "append"
+    },
+    {
+      "old_name": "Mark Client Completed",
+      "new_name": "Mark Client Completed",
+      "id": "8259faa0-c5f4-4510-99d0-8faf0999f3fd",
+      "operation": "update"
+    },
+    {
+      "old_name": "Write Diagrams to Sheet",
+      "new_name": "Write Diagrams to Sheet",
+      "id": "641c6f43-28e8-4dc3-b701-569cf8d40e13",
+      "operation": "append"
+    }
+  ],
+  "nodes_removed": [],
+  "credential_used": "microsoftExcelOAuth2Api (s5miVPK26YEwfqso)"
+}
