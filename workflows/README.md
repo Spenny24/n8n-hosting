@@ -11,8 +11,9 @@ This directory contains production-ready n8n workflows for AI Operating Model au
 | **Premium Report** | Premium | Airtable-based audits | $0.99 | ~90s | 6,000-8,000 words |
 | **Google Sheets Edition** | Standard | Basic audits | $0.006 | ~80s | 1,500 words |
 | **Financial Deep-Dive** | Enterprise | CFO-grade analysis | $1.20 | ~120s | 8,000+ words |
-| **Lead Gen Google Sheets** | Sales | Lead generation | $0.05 | ~30s | Email campaigns |
 | **AI-Powered Lead Research** | Sales | Lead research | $0.05 | ~45s | Personalized emails |
+
+> ⚠️ **Security Note:** One workflow (AI Op Model - Lead Gen) was removed due to exposed API credentials. If you need lead generation capabilities, use the AI-Powered Lead Research workflow with proper credential configuration.
 
 ---
 
@@ -207,42 +208,7 @@ This directory contains production-ready n8n workflows for AI Operating Model au
 
 ## 🎯 Sales & Lead Generation Workflows
 
-### 6. AI Op Model - Lead Gen (Google Sheets Edition)
-
-**File:** `AI Op Model - Lead Gen (Google Sheets Edition).json`
-
-**Description:** Automated lead generation and qualification for AI Operating Model audit prospects.
-
-**Use Case:**
-- Sales prospecting
-- Lead qualification
-- Market research
-- Outbound campaigns
-
-**Key Features:**
-- 🔍 Automated prospect research
-- 🎯 Lead scoring and qualification
-- 📧 Personalized email generation
-- 📊 Google Sheets integration for lead tracking
-- 🤖 Groq AI for fast, cost-effective analysis
-
-**Output:**
-- Lead qualification scores
-- Personalized outreach emails
-- Company analysis summaries
-
-**Cost:** $0.05 per lead (using Groq instead of OpenAI)
-
-**Execution Time:** ~30 seconds per lead
-
-**Required Credentials:**
-- Google Sheets OAuth2
-- Groq API Key
-- Web scraping tools (optional)
-
----
-
-### 7. AI-Powered Lead Research & Personalized Email Generation
+### 6. AI-Powered Lead Research & Personalized Email Generation
 
 **File:** `_AI-Powered Lead Research & Personalized Email Generation with Groq & Google Sheets.json`
 
@@ -557,5 +523,18 @@ Want to contribute a workflow or enhancement?
 ---
 
 **Last Updated:** 2026-01-14
-**Total Workflows:** 7
+**Total Workflows:** 6
 **Average Cost per Audit:** $0.21 - $1.20 depending on workflow
+
+---
+
+## 🔒 Security Note
+
+This repository previously contained a workflow file with an exposed API key, which has been removed for security. If you cloned this repository before 2026-01-14, please:
+
+1. Rotate any API keys used in your workflows
+2. Ensure all credentials are stored in n8n's credential manager, not hardcoded
+3. Never commit workflow files with embedded credentials
+4. Use the `.env.example` templates for configuration
+
+For security concerns, see [SECURITY.md](../SECURITY.md).
