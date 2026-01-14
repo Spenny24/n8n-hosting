@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: Update Premium Prompts",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/update_premium_prompts.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Docker: Attach to n8n container",
+      "type": "docker",
+      "request": "attach",
+      "platform": "node",
+      "containerName": "n8n"
+    },
+    {
+      "name": "Docker: Attach to postgres container",
+      "type": "docker",
+      "request": "attach",
+      "platform": "linux",
+      "containerName": "postgres"
+    }
+  ]
+}
