@@ -1,0 +1,397 @@
+{
+  "name": "AI Agent Factory",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "step": 1
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "list",
+        "base": "={{$env[\"AIRTABLE_BASE_ID_AGENT_FACTORY\"]}}",
+        "table": "={{$env[\"AIRTABLE_TABLE_ID_AGENT_FACTORY\"]}}",
+        "returnAll": true,
+        "options": {
+          "view": "={{$env[\"AIRTABLE_VIEW_ID_AGENT_FACTORY\"]}}"
+        }
+      },
+      "id": "2",
+      "name": "Airtable - Fetch Ideas",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 3,
+      "position": [
+        -1000,
+        0
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "",
+          "name": "Airtable PAT (Agent Factory)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const records = items.filter(item => {\n  const status = item.json.fields?.Status || item.json.Status;\n  return !status || status === 'New';\n});\n\nreturn records.map(item => {\n  const record = item.json;\n  const fields = record.fields ?? record;\n  const successCriteria = Array.isArray(fields['Success Criteria']) ? fields['Success Criteria'] : [];\n  const stack = Array.isArray(fields['Stack']) ? fields['Stack'] : (fields['Stack'] ? [fields['Stack']] : []);\n  const channels = Array.isArray(fields['Channels']) ? fields['Channels'] : (fields['Channels'] ? [fields['Channels']] : []);\n  const repoUrl = fields['Repo'] || '';\n\n  return {\n    json: {\n      airtableId: record.id,\n      airtableUrl: fields['Spec URL'] || '',\n      airtable: record,\n      idea: {\n        id: record.id,\n        title: fields.Name || fields['Name'] || 'Untitled agent',\n        problem: fields.Problem || '',\n        persona: fields.Persona || '',\n        value: typeof fields.Value === 'number' ? fields.Value.toString() : fields.Value || '',\n        successCriteria,\n        stack,\n        channels,\n      },\n      context: {\n        priorArtifacts: repoUrl ? [repoUrl] : [],\n        notes: fields.Notes || '',\n        airtableRecord: record\n      },\n      branchName: `idea/${record.id}`\n    }\n  };\n});"
+      },
+      "id": "3",
+      "name": "Function - Prepare Idea",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -780,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "4",
+      "name": "Split Ideas",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "chat",
+        "model": "gpt-4.1-mini",
+        "options": {
+          "responseFormat": "json_object",
+          "temperature": 0.2
+        },
+        "messages": [
+          {
+            "role": "system",
+            "text": "You are a senior AI architect. Convert Airtable idea payloads into actionable build plans. Respond as JSON with keys plan.summary, plan.implementationSteps[], plan.riskRegister[], plan.governance."
+          },
+          {
+            "role": "user",
+            "text": "={{$jsonStringify({idea: $json.idea, context: $json.context})}}"
+          }
+        ]
+      },
+      "id": "5",
+      "name": "OpenAI - Build Plan",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        -360,
+        -40
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "",
+          "name": "OpenAI (Agent Factory)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const output = items[0].json;\nconst raw = output.data?.[0]?.content?.[0]?.text || output.choices?.[0]?.message?.content || output.response?.message?.content?.[0]?.text || output.message || output.result || '';\nif (!raw) {\n  throw new Error('Unable to locate OpenAI content payload.');\n}\nconst payload = typeof raw === 'string' ? raw : JSON.stringify(raw);\nconst parsed = JSON.parse(payload);\nconst plan = parsed.plan || parsed;\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    plan: {\n      summary: plan.summary,\n      implementationSteps: plan.implementationSteps || plan.steps || [],\n      governance: plan.governance || '',\n      riskRegister: plan.riskRegister || plan.risks || []\n    }\n  }\n}));"
+      },
+      "id": "6",
+      "name": "Function - Parse Plan",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const baseUrl = (process.env.MCP_BASE_URL || 'http://host.docker.internal:3000').replace(/\\\\/$/, '');\nconst results = [];\n\nfor (const item of items) {\n  const payload = {\n    idea: item.json.idea,\n    context: item.json.context,\n    plan: item.json.plan,\n  };\n\n  try {\n    const manifest = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `${baseUrl}/generate`,\n      body: payload,\n      json: true,\n    });\n\n    results.push({\n      json: {\n        ...item.json,\n        manifest,\n        files: manifest.files || [],\n        summary: manifest.summary || '',\n        env: manifest.env || {},\n        nextActions: manifest.nextActions || [],\n      },\n    });\n  } catch (error) {\n    throw new Error(`MCP generate failed via ${baseUrl}: ${error.message || error}`);\n  }\n}\n\nreturn results;\n"
+      },
+      "id": "7",
+      "name": "Function - MCP Generate",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        40,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "merge",
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "repoSlug",
+              "value": "={{$env[\"GITHUB_AGENT_FACTORY_REPO\"]}}"
+            },
+            {
+              "name": "baseBranchEnv",
+              "value": "={{$env[\"GITHUB_AGENT_FACTORY_MAIN\"] || 'main'}}"
+            },
+            {
+              "name": "workflowDispatchEnabled",
+              "value": "={{$env[\"GITHUB_AGENT_FACTORY_RUN_WORKFLOW\"] || 'false'}}"
+            },
+            {
+              "name": "workflowDispatchName",
+              "value": "={{$env[\"GITHUB_AGENT_FACTORY_WORKFLOW\"] || 'build-agent.yml'}}"
+            },
+            {
+              "name": "airtableBaseId",
+              "value": "={{$env[\"AIRTABLE_BASE_ID_AGENT_FACTORY\"]}}"
+            },
+            {
+              "name": "airtableTableId",
+              "value": "={{$env[\"AIRTABLE_TABLE_ID_AGENT_FACTORY\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "13",
+      "name": "Set - Runtime Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const repoSlug = item.json.repoSlug || '';\n  if (!repoSlug.includes('/')) {\n    throw new Error('Set GITHUB_AGENT_FACTORY_REPO to owner/repo');\n  }\n  const [owner, repo] = repoSlug.split('/');\n  const baseBranch = item.json.baseBranchEnv || 'main';\n  const branchName = item.json.branchName;\n  const commitMessage = `feat: bootstrap agent for ${item.json.idea.title}`;\n  const prTitle = `feat: ${item.json.idea.title} agent scaffold`;\n  return {\n    json: {\n      ...item.json,\n      owner,\n      repo,\n      baseBranch,\n      branchName,\n      commitMessage,\n      prTitle\n    }\n  };\n});\n"
+      },
+      "id": "9",
+      "name": "Function - GitHub Context",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const formatEnv = (env) => {\n  const keys = Object.keys(env || {});\n  if (!keys.length) {\n    return 'No runtime secrets declared.';\n  }\n  return keys.map(key => `- **${key}**: ${env[key] || 'Set via secrets manager'}`).join('\n');\n};\n\nconst formatList = (items, emptyMsg) => {\n  if (!items || !items.length) {\n    return emptyMsg;\n  }\n  return items.map(entry => `- ${entry}`).join('\n');\n};\n\nasync function commitAndPr(item) {\n  const { owner, repo, baseBranch, branchName, commitMessage, prTitle, files, summary, env, nextActions, context } = item.json;\n\n  const request = async (options) => {\n    const result = await this.helpers.httpRequestWithAuthentication.call(this, 'githubApi', {\n      ...options,\n      headers: {\n        Accept: 'application/vnd.github+json',\n        'User-Agent': 'n8n-agent-factory',\n        ...(options.headers || {})\n      },\n      json: options.json ?? true\n    });\n    return result;\n  };\n\n  const baseRef = await request({\n    method: 'GET',\n    url: `https://api.github.com/repos/${owner}/${repo}/git/ref/heads/${baseBranch}`\n  });\n\n  const baseCommitSha = baseRef.object.sha;\n\n  const baseCommit = await request({\n    method: 'GET',\n    url: `https://api.github.com/repos/${owner}/${repo}/git/commits/${baseCommitSha}`\n  });\n\n  const tree = await request({\n    method: 'POST',\n    url: `https://api.github.com/repos/${owner}/${repo}/git/trees`,\n    body: {\n      base_tree: baseCommit.tree.sha,\n      tree: files.map((file) => ({\n        path: file.path,\n        mode: '100644',\n        type: 'blob',\n        content: file.contents\n      }))\n    }\n  });\n\n  const commit = await request({\n    method: 'POST',\n    url: `https://api.github.com/repos/${owner}/${repo}/git/commits`,\n    body: {\n      message: commitMessage,\n      tree: tree.sha,\n      parents: [baseCommitSha]\n    }\n  });\n\n  try {\n    await request({\n      method: 'POST',\n      url: `https://api.github.com/repos/${owner}/${repo}/git/refs`,\n      body: {\n        ref: `refs/heads/${branchName}`,\n        sha: commit.sha\n      }\n    });\n  } catch (error) {\n    if (error.response && error.response.statusCode === 422) {\n      await request({\n        method: 'PATCH',\n        url: `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}`,\n        body: {\n          sha: commit.sha,\n          force: true\n        }\n      });\n    } else {\n      throw error;\n    }\n  }\n\n  const airtableLink = item.json.airtableBaseId && item.json.airtableTableId\n    ? `https://airtable.com/${item.json.airtableBaseId}/${item.json.airtableTableId}/${item.json.airtableId}`\n    : 'Airtable record link unavailable';\n\n  const prBody = [\n    '## Summary',\n    summary || 'Scaffold generated by Agent Factory.',\n    '',\n    '## Runtime Secrets',\n    formatEnv(env),\n    '',\n    '## Next Actions',\n    formatList(nextActions, 'None identified.'),\n    '',\n    '## Airtable',\n    `- [Record](${airtableLink})`,\n    `- Notes: ${context.notes || 'n/a'}`\n  ].join('\n');\n\n  let pullRequest;\n  try {\n    pullRequest = await request({\n      method: 'POST',\n      url: `https://api.github.com/repos/${owner}/${repo}/pulls`,\n      body: {\n        title: prTitle,\n        head: branchName,\n        base: baseBranch,\n        body: prBody\n      }\n    });\n  } catch (error) {\n    if (error.response && error.response.statusCode === 422) {\n      const existing = await request({\n        method: 'GET',\n        url: `https://api.github.com/repos/${owner}/${repo}/pulls`,\n        qs: {\n          state: 'open',\n          head: `${owner}:${branchName}`\n        }\n      });\n      if (Array.isArray(existing) && existing.length > 0) {\n        pullRequest = existing[0];\n      } else {\n        throw error;\n      }\n    } else {\n      throw error;\n    }\n  }\n\n  const workflowName = item.json.workflowDispatchName || 'build-agent.yml';\n  const runWorkflowFlag = (item.json.workflowDispatchEnabled || 'false').toLowerCase() === 'true';\n\n  if (runWorkflowFlag) {\n    await request({\n      method: 'POST',\n      url: `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowName}/dispatches`,\n      body: {\n        ref: branchName,\n        inputs: {\n          agent_branch: branchName,\n          airtable_id: item.json.airtableId\n        }\n      }\n    });\n  }\n\n  return {\n    json: {\n      ...item.json,\n      commitSha: commit.sha,\n      prUrl: pullRequest.html_url,\n      prNumber: pullRequest.number,\n      repoUrl: `https://github.com/${owner}/${repo}`\n    }\n  };\n}\n\nconst results = [];\nfor (const item of items) {\n  results.push(await commitAndPr.call(this, item));\n}\nreturn results;\n"
+      },
+      "id": "10",
+      "name": "Function - GitHub Commit & PR",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        680,
+        -40
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub Agent Factory"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": "={{$env[\"AIRTABLE_BASE_ID_AGENT_FACTORY\"]}}",
+        "table": "={{$env[\"AIRTABLE_TABLE_ID_AGENT_FACTORY\"]}}",
+        "id": "={{$json.airtableId}}",
+        "fields": {
+          "Status": "In Progress",
+          "Spec URL": "={{$json.prUrl}}"
+        }
+      },
+      "id": "11",
+      "name": "Airtable - Update Record",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 3,
+      "position": [
+        920,
+        -40
+      ],
+      "credentials": {
+        "airtableApi": {
+          "id": "",
+          "name": "Airtable PAT (Agent Factory)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "fields": {
+          "Agent Title": "={{$json.idea.title}}",
+          "Branch": "={{$json.branchName}}",
+          "Pull Request": "={{$json.prUrl}}",
+          "Summary": "={{$json.summary}}"
+        }
+      },
+      "id": "12",
+      "name": "Workflow - Report",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Fetch Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Fetch Ideas": {
+      "main": [
+        [
+          {
+            "node": "Function - Prepare Idea",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Prepare Idea": {
+      "main": [
+        [
+          {
+            "node": "Split Ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Ideas": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Build Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Build Plan": {
+      "main": [
+        [
+          {
+            "node": "Function - Parse Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Parse Plan": {
+      "main": [
+        [
+          {
+            "node": "Function - MCP Generate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - MCP Generate": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Manifest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - GitHub Context": {
+      "main": [
+        [
+          {
+            "node": "Function - GitHub Commit & PR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - GitHub Commit & PR": {
+      "main": [
+        [
+          {
+            "node": "Airtable - Update Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable - Update Record": {
+      "main": [
+        [
+          {
+            "node": "Workflow - Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - MCP Generate": {
+      "main": [
+        [
+          {
+            "node": "Set - Runtime Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Runtime Config": {
+      "main": [
+        [
+          {
+            "node": "Function - GitHub Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "staticData": null,
+  "tags": []
+}
