@@ -81,7 +81,7 @@ Set up the following credentials in n8n:
    - Google Drive: Report uploaded
    - Slack: Notification sent
 
-📖 **Detailed Guide:** See [QUICK_START.md](QUICK_START.md) for step-by-step instructions.
+📖 **Detailed Guide:** See [docs/QUICK_START.md](docs/QUICK_START.md) for step-by-step instructions.
 
 ## 📦 Workflows
 
@@ -232,30 +232,30 @@ GENERIC_TIMEZONE=America/New_York
 
 2. Update sheet IDs in the "Set Client Config" node
 
-📖 **Detailed Guide:** See [GOOGLE_SHEETS_SETUP_GUIDE.md](GOOGLE_SHEETS_SETUP_GUIDE.md)
+📖 **Detailed Guide:** See [docs/GOOGLE_SHEETS_SETUP_GUIDE.md](docs/GOOGLE_SHEETS_SETUP_GUIDE.md)
 
 ## 📚 Documentation
 
 ### Getting Started
-- [Quick Start Guide](QUICK_START.md) - 5-minute setup
-- [Google Sheets Setup](GOOGLE_SHEETS_SETUP_GUIDE.md) - Data source configuration
-- [Workflow Improvements Guide](WORKFLOW_IMPROVEMENTS_GUIDE.md) - Optimization tips
+- [Quick Start Guide](docs/QUICK_START.md) - 5-minute setup
+- [Google Sheets Setup](docs/GOOGLE_SHEETS_SETUP_GUIDE.md) - Data source configuration
+- [Workflow Improvements Guide](docs/WORKFLOW_IMPROVEMENTS_GUIDE.md) - Optimization tips
 
 ### Technical Deep-Dives
-- [Architecture Comparison](ARCHITECTURE_COMPARISON.md) - V3 vs V4 design
-- [Cost Analysis](COST_ANALYSIS.md) - Detailed cost breakdown
-- [Premium Workflow README](PREMIUM_WORKFLOW_README.md) - Enterprise features
-- [Premium Report Specification](PREMIUM_REPORT_SPECIFICATION.md) - Output format details
+- [Architecture Comparison](docs/ARCHITECTURE_COMPARISON.md) - V3 vs V4 design
+- [Cost Analysis](docs/COST_ANALYSIS.md) - Detailed cost breakdown
+- [Premium Workflow README](docs/PREMIUM_WORKFLOW_README.md) - Enterprise features
+- [Premium Report Specification](docs/PREMIUM_REPORT_SPECIFICATION.md) - Output format details
 
 ### Enhancement Roadmaps
-- [Consultant Grade Enhancements](CONSULTANT_GRADE_ENHANCEMENTS.md) - Future improvements
-- [Google Drive Trigger Spec](GOOGLE_DRIVE_TRIGGER_SPEC.md) - Automation plans
-- [Session Summary](SESSION_SUMMARY.md) - Development history
+- [Consultant Grade Enhancements](docs/CONSULTANT_GRADE_ENHANCEMENTS.md) - Future improvements
+- [Google Drive Trigger Spec](docs/GOOGLE_DRIVE_TRIGGER_SPEC.md) - Automation plans
+- [Session Summary](docs/SESSION_SUMMARY.md) - Development history
 
 ### Code Utilities
-- [Data Cleaner V3](DATA_CLEANER_V3_CODE.js) - Data normalization code
-- [Environment Guard Fix](ENVIRONMENT_GUARD_FIX.js) - n8n compatibility fix
-- [Update Premium Prompts](update_premium_prompts.py) - Prompt management script
+- [Data Cleaner V3](scripts/DATA_CLEANER_V3_CODE.js) - Data normalization code
+- [Environment Guard Fix](scripts/ENVIRONMENT_GUARD_FIX.js) - n8n compatibility fix
+- [Update Premium Prompts](scripts/update_premium_prompts.py) - Prompt management script
 
 ## 💰 Cost Analysis
 
@@ -277,7 +277,7 @@ GENERIC_TIMEZONE=America/New_York
 
 **ROI:** 99.998% cost reduction vs traditional consulting
 
-📊 **Detailed Breakdown:** See [COST_ANALYSIS.md](COST_ANALYSIS.md)
+📊 **Detailed Breakdown:** See [docs/COST_ANALYSIS.md](docs/COST_ANALYSIS.md)
 
 ## 🏛️ Architecture
 
@@ -325,7 +325,7 @@ GENERIC_TIMEZONE=America/New_York
 - ✅ **Data validation gates**
 - 📊 **Quality scoring**
 
-📖 **Full Details:** See [ARCHITECTURE_COMPARISON.md](ARCHITECTURE_COMPARISON.md)
+📖 **Full Details:** See [docs/ARCHITECTURE_COMPARISON.md](docs/ARCHITECTURE_COMPARISON.md)
 
 ## 🤝 Contributing
 
