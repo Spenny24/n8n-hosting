@@ -1,0 +1,273 @@
+{
+  "name": "ConeyTech Market Tracker (Monthly)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": [
+          {
+            "hour": 8,
+            "minute": 0,
+            "dayOfMonth": "1"
+          }
+        ]
+      },
+      "id": "17b6fd6c-5c2d-4a60-96f1-92e8b848d9f1",
+      "name": "Monthly Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Base config for the research loop.\nreturn [{\n  json: {\n    timezone: 'Europe/London',\n    categories: [\n      { name: 'BrokerTech', region: 'UK' },\n      { name: 'EA Tech', region: 'UK' },\n      { name: 'ConveyTech', region: 'UK' },\n      { name: 'LenderTech', region: 'UK' },\n      { name: 'ConeyTech', region: 'Worldwide' }\n    ],\n    timeframe: 'past month',\n    // Adjust search keywords to taste\n    keywords: 'new tool OR product update OR launch OR feature',\n    serpEndpoint: 'https://google.serper.dev/search'\n  }\n}];"
+      },
+      "id": "ae6444c4-27f3-4de4-a53b-88be826fe1aa",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Expand categories into individual search jobs.\nconst output = [];\nconst base = items[0].json;\nfor (const category of base.categories) {\n  const query = `${category.name} ${category.region} ${base.keywords} ${base.timeframe}`;\n  output.push({\n    json: {\n      category: category.name,\n      region: category.region,\n      query,\n      serpEndpoint: base.serpEndpoint\n    }\n  });\n}\nreturn output;"
+      },
+      "id": "b33adf55-2151-45e1-a969-92bb7bd573c2",
+      "name": "Prepare Queries",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Fetch Google results via Serper to keep the category context.\nconst apiKey = $env('SERPER_API_KEY');\nif (!apiKey) {\n  throw new Error('SERPER_API_KEY env var is required');\n}\nconst results = [];\nfor (const item of items) {\n  const { query, category, region, serpEndpoint } = item.json;\n  const response = await this.helpers.httpRequest({\n    method: 'POST',\n    uri: serpEndpoint,\n    headers: {\n      'X-API-KEY': apiKey\n    },\n    body: {\n      q: query,\n      gl: region.toLowerCase().includes('uk') ? 'uk' : 'us',\n      hl: 'en',\n      tbs: 'qdr:m',\n      num: 10\n    },\n    json: true\n  });\n  results.push({\n    json: {\n      category,\n      region,\n      query,\n      serp: response\n    }\n  });\n}\nreturn results;"
+      },
+      "id": "f602f5fe-45c5-4361-93ed-7f95efb98f79",
+      "name": "Serper Search",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Flatten SERP results to prepare the LLM prompt.\nconst output = [];\nfor (const item of items) {\n  const organic = item.json.serp?.organic || [];\n  output.push({\n    json: {\n      category: item.json.category,\n      region: item.json.region,\n      query: item.json.query,\n      organic\n    }\n  });\n}\nreturn output;"
+      },
+      "id": "b7094895-52e3-4181-a0ea-cb0c1492f40a",
+      "name": "Extract Organic Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Use OpenAI to extract new tools/updates as structured JSON.\nconst apiKey = $env('OPENAI_API_KEY');\nif (!apiKey) {\n  throw new Error('OPENAI_API_KEY env var is required');\n}\nconst model = 'gpt-4o-mini';\nconst outputs = [];\nfor (const item of items) {\n  const prompt = `You are a research analyst creating a monthly ConeyTech tooling tracker. \nInput: ${JSON.stringify(item.json.organic).slice(0, 12000)}\nInstructions: Identify distinct tools or platforms (launches, feature drops, funding announcements) relevant to ${item.json.category} in ${item.json.region}. Only keep items from the past month. Return JSON with schema {\"tools\":[{\"name\":string,\"category\":string,\"region\":string,\"summary\":string,\"source_url\":string,\"published_at\":string}]}. If no tools are found, return {\"tools\":[]}.`;\n  const response = await this.helpers.httpRequest({\n    method: 'POST',\n    uri: 'https://api.openai.com/v1/chat/completions',\n    headers: {\n      Authorization: `Bearer ${apiKey}`\n    },\n    body: {\n      model,\n      messages: [\n        { role: 'system', content: 'Extract UK/EU mortgage journey tooling updates as structured JSON.' },\n        { role: 'user', content: prompt }\n      ],\n      temperature: 0,\n      response_format: { type: 'json_object' }\n    },\n    json: true\n  });\n  const message = response.choices?.[0]?.message?.content || '{"tools":[]}';\n  let parsed;\n  try {\n    parsed = JSON.parse(message);\n  } catch (error) {\n    parsed = { tools: [] };\n  }\n  for (const tool of parsed.tools || []) {\n    outputs.push({\n      json: {\n        name: tool.name,\n        category: tool.category || item.json.category,\n        region: tool.region || item.json.region,\n        summary: tool.summary,\n        source_url: tool.source_url,\n        published_at: tool.published_at,\n        query: item.json.query\n      }\n    });\n  }\n}\nreturn outputs;"
+      },
+      "id": "97b7fcab-88b2-4db3-9f61-58e63bc25432",
+      "name": "OpenAI Extract",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// De-duplicate tools by name + category to avoid duplicates across months.\nconst seen = new Set();\nconst cleaned = [];\nfor (const item of items) {\n  const key = `${item.json.name}::${item.json.category}`.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  cleaned.push(item);\n}\nreturn cleaned;"
+      },
+      "id": "32ee88fc-0f17-42ce-827c-80f3893c0c35",
+      "name": "Deduplicate Tools",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{$env('NOTION_DB_ID')}}",
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name",
+              "propertyType": "title",
+              "title": {
+                "title": [
+                  {
+                    "text": {
+                      "content": "={{$json.name}}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "key": "Category",
+              "propertyType": "select",
+              "select": {
+                "name": "={{$json.category}}"
+              }
+            },
+            {
+              "key": "Region",
+              "propertyType": "select",
+              "select": {
+                "name": "={{$json.region}}"
+              }
+            },
+            {
+              "key": "Summary",
+              "propertyType": "richText",
+              "richText": {
+                "rich_text": [
+                  {
+                    "text": {
+                      "content": "={{$json.summary || 'No summary provided'}}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "key": "Source",
+              "propertyType": "url",
+              "url": "={{$json.source_url}}"
+            },
+            {
+              "key": "Published",
+              "propertyType": "date",
+              "date": {
+                "start": "={{$json.published_at || $now}}"
+              }
+            },
+            {
+              "key": "Query",
+              "propertyType": "richText",
+              "richText": {
+                "rich_text": [
+                  {
+                    "text": {
+                      "content": "={{$json.query}}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "3f1e46e8-7de5-4d0e-a065-eb69bbabc0b7",
+      "name": "Notion Upsert",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        0
+      ],
+      "notes": "Connect with a Notion credential that has database write access."
+    }
+  ],
+  "connections": {
+    "Monthly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Prepare Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Queries": {
+      "main": [
+        [
+          {
+            "node": "Serper Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Serper Search": {
+      "main": [
+        [
+          {
+            "node": "Extract Organic Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Organic Results": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Extract": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Tools": {
+      "main": [
+        [
+          {
+            "node": "Notion Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "timezone": "Europe/London"
+  },
+  "pinData": {},
+  "version": 2
+}
