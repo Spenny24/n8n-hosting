@@ -1,0 +1,195 @@
+{
+  "nodes": [
+    {
+      "id": "manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-200, 300]
+    },
+    {
+      "id": "segments",
+      "name": "Set Segments",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [0, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "segments",
+              "type": "array",
+              "value": "=[{\"segment\":\"EA Tech\",\"q\":\"UK estate agent software\"},{\"segment\":\"PropertyTech\",\"q\":\"UK property management software\"},{\"segment\":\"MortgageTech\",\"q\":\"UK mortgage broker platform\"}]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "splitSegments",
+      "name": "Split Segments",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "parameters": {
+        "fieldToSplitOut": "segments"
+      }
+    },
+    {
+      "id": "serpapi",
+      "name": "Fetch SerpApi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [420, 300],
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "api_key", "value": "SERPAPI_KEY" },
+            { "name": "engine", "value": "google" },
+            { "name": "gl", "value": "gb" },
+            { "name": "hl", "value": "en" },
+            { "name": "num", "value": "10" },
+            { "name": "q", "value": "={{$json.segments.q}}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "splitResults",
+      "name": "Split Results",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "fieldToSplitOut": "organic_results",
+        "include": "allOtherFields"
+      }
+    },
+    {
+      "id": "flatten",
+      "name": "Flatten Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [880, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "segment",
+              "type": "string",
+              "value": "={{$json.segments.segment}}"
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "value": "={{$json.organic_results.title}}"
+            },
+            {
+              "name": "snippet",
+              "type": "string",
+              "value": "={{$json.organic_results.snippet}}"
+            },
+            {
+              "name": "link",
+              "type": "string",
+              "value": "={{$json.organic_results.link}}"
+            },
+            {
+              "name": "source",
+              "type": "string",
+              "value": "={{$json.organic_results.source}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "llm",
+      "name": "LLM Extract Tool",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI"
+        }
+      },
+      "parameters": {
+        "modelId": "gpt-4.1-mini",
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Return ONLY valid JSON.\n\n{\n\"tool_name\":\"\",\n\"website\":\"\",\n\"segment\":\"\",\n\"summary\":\"\",\n\"key_use_case\":\"\",\n\"target_user\":\"\",\n\"funding_stage\":\"\",\n\"main_source_url\":\"\",\n\"score_relevance\":0,\n\"score_confidence\":0,\n\"tags\":\"\"\n}\n\nRules:\n- If not a real software product, tool_name must be empty.\n- website must be https URL or empty."
+            },
+            {
+              "role": "user",
+              "content": "={{JSON.stringify($json)}}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sheets",
+      "name": "Append tools_master",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1380, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      },
+      "parameters": {
+        "operation": "append",
+        "documentId": "SPREADSHEET_ID",
+        "sheetName": "tools_master",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tool_name": "={{$json.tool_name}}",
+            "website": "={{$json.website}}",
+            "segment": "={{$json.segment}}",
+            "summary": "={{$json.summary}}",
+            "key_use_case": "={{$json.key_use_case}}",
+            "target_user": "={{$json.target_user}}",
+            "funding_stage": "={{$json.funding_stage}}",
+            "main_source_url": "={{$json.main_source_url}}",
+            "score_relevance": "={{$json.score_relevance}}",
+            "score_confidence": "={{$json.score_confidence}}",
+            "tags": "={{$json.tags}}",
+            "last_seen": "={{new Date().toISOString()}}"
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Set Segments", "type": "main", "index": 0 }]]
+    },
+    "Set Segments": {
+      "main": [[{ "node": "Split Segments", "type": "main", "index": 0 }]]
+    },
+    "Split Segments": {
+      "main": [[{ "node": "Fetch SerpApi", "type": "main", "index": 0 }]]
+    },
+    "Fetch SerpApi": {
+      "main": [[{ "node": "Split Results", "type": "main", "index": 0 }]]
+    },
+    "Split Results": {
+      "main": [[{ "node": "Flatten Result", "type": "main", "index": 0 }]]
+    },
+    "Flatten Result": {
+      "main": [[{ "node": "LLM Extract Tool", "type": "main", "index": 0 }]]
+    },
+    "LLM Extract Tool": {
+      "main": [[{ "node": "Append tools_master", "type": "main", "index": 0 }]]
+    }
+  }
+}

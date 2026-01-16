@@ -1,0 +1,170 @@
++{
++  "name": "AI Model Photoshoot (Nano Banana)",
++  "nodes": [
++    {
++      "parameters": {
++        "httpMethod": "POST",
++        "path": "ai-model-photoshoot",
++        "responseMode": "lastNode",
++        "options": {
++          "responseContentType": "application/json"
++        }
++      },
++      "id": "Webhook Trigger",
++      "name": "Webhook Trigger",
++      "type": "n8n-nodes-base.webhook",
++      "typeVersion": 1,
++      "position": [ -720, 120 ]
++    },
++    {
++      "parameters": {
++        "functionCode": "const body = items[0].json;\nconst images = (body.images || body.image_urls || []).filter(Boolean).map((u) => String(u).trim());\nif (!images.length) {\n  throw new Error('Provide 1-5 image URLs under images[].');\n}\nif (images.length > 5) {\n  images.length = 5;\n}\nreturn [{\n  json: {\n    productName: body.productName || body.title || 'Product',\n    productDescription: body.description || '',\n    preferredStyle: body.style || '',\n    modelPreferences: body.modelPreferences || body.model || '',\n    locationHint: body.location || '',\n    images,\n  },\n}];\n"
++      },
++      "id": "Normalize Input",
++      "name": "Normalize Input",
++      "type": "n8n-nodes-base.function",
++      "typeVersion": 1,
++      "position": [ -520, 120 ]
++    },
++    {
++      "parameters": {
++        "chatModel": "gpt-4o-mini",
++        "messages": [
++          {
++            "text": "You are a fashion art director. Given the product info and up to 5 product photos, design a model photoshoot plan. Return strict JSON with keys: model_profile (string), poses (array), angles (array), locations (array), wardrobe_notes (string), prompt (string summarizing the shoot). Do not add commentary.",
++            "type": "system"
++          },
++          {
++            "type": "user",
++            "text": "Product: {{$json.productName}}. Description: {{$json.productDescription}}. Preferred style: {{$json.preferredStyle}}. Model preferences: {{$json.modelPreferences}}. Location hint: {{$json.locationHint}}. Image URLs: {{$json.images.join(', ')}}."
++          }
++        ],
++        "temperature": 0.2,
++        "responseFormat": "json_object"
++      },
++      "id": "Analyze Outfit",
++      "name": "Analyze Outfit",
++      "type": "n8n-nodes-base.openAi",
++      "typeVersion": 2,
++      "position": [ -320, 120 ]
++    },
++    {
++      "parameters": {
++        "mode": "combine",
++        "combineBy": "index"
++      },
++      "id": "Merge Analysis",
++      "name": "Merge Analysis",
++      "type": "n8n-nodes-base.merge",
++      "typeVersion": 2,
++      "position": [ -120, 120 ]
++    },
++    {
++      "parameters": {
++        "functionCode": "const item = items[0].json;\nconst planRaw = item.data?.[0]?.message?.content?.[0]?.text || item.message?.content || item.completion || item.prompt || JSON.stringify(item);\nlet plan;\ntry {\n  plan = typeof planRaw === 'string' ? JSON.parse(planRaw) : planRaw;\n} catch (error) {\n  plan = {\n    model_profile: item.modelPreferences || 'commercial',\n    poses: ['3/4 standing', 'walking mid-step'],\n    angles: ['eye-level', 'low angle'],\n    locations: [item.locationHint || 'studio'],\n    wardrobe_notes: 'Keep garment visible; clean backgrounds.',\n    prompt: `Editorial, sharp lighting, showcase ${item.productName}.`,\n  };\n}\nconst basePrompt = plan.prompt || `Editorial studio shot of ${item.productName}`;\nreturn item.images.map((imageUrl, index) => ({\n  json: {\n    source_image: imageUrl,\n    productName: item.productName,\n    model_profile: plan.model_profile,\n    pose: plan.poses?.[index % (plan.poses?.length || 1)] || '3/4 standing',\n    angle: plan.angles?.[index % (plan.angles?.length || 1)] || 'eye-level',\n    location: plan.locations?.[index % (plan.locations?.length || 1)] || 'studio',\n    wardrobe_notes: plan.wardrobe_notes,\n    prompt: `${basePrompt}. Model vibe: ${plan.model_profile}. Pose: ${plan.poses?.join('; ') || '3/4 pose'}. Angles: ${plan.angles?.join('; ') || 'eye-level'}. Location: ${plan.locations?.join('; ') || 'studio'}. Keep garment true-to-life.`,\n    aspect_ratio: '9:16',\n  },\n}));\n"
++      },
++      "id": "Prepare Image Jobs",
++      "name": "Prepare Image Jobs",
++      "type": "n8n-nodes-base.function",
++      "typeVersion": 1,
++      "position": [ 80, 120 ]
++    },
++    {
++      "parameters": {
++        "url": "https://api.nanobanana.ai/v1/generate",
++        "method": "POST",
++        "responseFormat": "json",
++        "jsonParameters": true,
++        "options": {
++          "batch": true,
++          "batchInterval": 0,
++          "batchSize": 1,
++          "responsePropertyName": "generation",
++          "headers": {
++            "Authorization": "Bearer {{$env.NANOBANANA_API_KEY}}"
++          }
++        },
++        "bodyParametersJson": "{\n  \"image_url\": \"={{$json.source_image}}\",\n  \"prompt\": \"={{$json.prompt}}\",\n  \"aspect_ratio\": \"={{$json.aspect_ratio}}\",\n  \"model\": \"NanoBananaPro\",\n  \"safety\": \"standard\",\n  \"output\": {\n    \"format\": \"png\",\n    \"background_removal\": false\n  }\n}"
++      },
++      "id": "Generate Model Images",
++      "name": "Generate Model Images",
++      "type": "n8n-nodes-base.httpRequest",
++      "typeVersion": 1,
++      "position": [ 300, 120 ],
++      "notesInFlow": true,
++      "notes": "Set NANOBANANA_API_KEY in your environment or replace the Authorization header manually."
++    },
++    {
++      "parameters": {
++        "functionCode": "const results = items.map(item => {\n  const generation = item.json.generation || {};\n  const data = generation.data || generation;\n  const downloadUrl = data.download_url || data.url || '';\n  const finalUrl = data.image_url || downloadUrl;\n  return {\n    product: item.json.productName,\n    source_image: item.json.source_image,\n    model_profile: item.json.model_profile,\n    pose: item.json.pose,\n    angle: item.json.angle,\n    location: item.json.location,\n    prompt_sent: item.json.prompt,\n    final_image_url: finalUrl,\n    download_url: downloadUrl,\n  };\n});\nreturn [{ json: { count: results.length, results } }];\n"
++      },
++      "id": "Format Response",
++      "name": "Format Response",
++      "type": "n8n-nodes-base.function",
++      "typeVersion": 1,
++      "position": [ 520, 120 ]
++    },
++    {
++      "parameters": {
++        "responseBody": "={{$json}}",
++        "responseCode": 200,
++        "options": {
++          "responseContentType": "application/json"
++        }
++      },
++      "id": "Return Payload",
++      "name": "Return Payload",
++      "type": "n8n-nodes-base.respondToWebhook",
++      "typeVersion": 1,
++      "position": [ 740, 120 ]
++    }
++  ],
++  "connections": {
++    "Webhook Trigger": {
++      "main": [ [ { "node": "Normalize Input", "type": "main", "index": 0 } ] ]
++    },
++    "Normalize Input": {
++      "main": [
++        [
++          { "node": "Analyze Outfit", "type": "main", "index": 0 },
++          { "node": "Merge Analysis", "type": "main", "index": 0 }
++        ]
++      ]
++    },
++    "Analyze Outfit": {
++      "main": [ [ { "node": "Merge Analysis", "type": "main", "index": 1 } ] ]
++    },
++    "Merge Analysis": {
++      "main": [ [ { "node": "Prepare Image Jobs", "type": "main", "index": 0 } ] ]
++    },
++    "Prepare Image Jobs": {
++      "main": [ [ { "node": "Generate Model Images", "type": "main", "index": 0 } ] ]
++    },
++    "Generate Model Images": {
++      "main": [ [ { "node": "Format Response", "type": "main", "index": 0 } ] ]
++    },
++    "Format Response": {
++      "main": [ [ { "node": "Return Payload", "type": "main", "index": 0 } ] ]
++    }
++  },
++  "settings": {
++    "executionOrder": "v1"
++  },
++  "id": "AI-Model-Photoshoot",
++  "meta": {
++    "templateCredsSetupCompleted": false,
++    "instanceId": ""
++  },
++  "tags": [
++    {
++      "name": "nano banana"
++    },
++    {
++      "name": "ai model"
++    }
++  ],
++  "version": 2
++}
+ 
+EOF
+)

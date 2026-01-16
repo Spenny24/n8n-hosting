@@ -1,0 +1,322 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d821000b-de3b-48e0-bc5a-cedffbaad01a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [8256, 2976]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      sheet_id: \"12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY\",\n      sheet_tab: \"Sheet1\",\n      from_name: \"Craig Spence\",\n      from_company: \"Carbon and Code\",\n      send_mode: \"send\",\n      throttle_seconds: 2\n    }\n  }\n];"
+      },
+      "id": "13099f58-d573-430d-9aa9-248419696d66",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8496, 2976]
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = [\n  {\n    row_number: 2,\n    company: \"Northline Digital\",\n    name: \"Jamie Patel\",\n    role: \"Director of Consulting\",\n    email: \"jamie.patel@northlinedigital.example\",\n    industry_focus: \"Marketing ops and automation\",\n    services_interest: \"AI operating model assessment\",\n    Status: \"\"\n  },\n  {\n    row_number: 3,\n    company: \"Graybridge Advisory\",\n    name: \"Melissa Chen\",\n    role: \"Partner\",\n    email: \"melissa.chen@graybridgeadvisory.example\",\n    industry_focus: \"Data and AI strategy\",\n    services_interest: \"Workflow automation and agent build\",\n    Status: \"\"\n  },\n  {\n    row_number: 4,\n    company: \"Pine & Co Tech\",\n    name: \"Rob Spencer\",\n    role: \"Head of Delivery\",\n    email: \"rob.spencer@pineco.example\",\n    industry_focus: \"Enterprise transformation\",\n    services_interest: \"RAG and knowledge systems\",\n    Status: \"\"\n  }\n];\n\nreturn [{ json: { leads } }];"
+      },
+      "id": "65e5fa24-944a-4319-b9d7-f22824bef207",
+      "name": "Generate Fake Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8736, 2976]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "leads",
+        "options": {}
+      },
+      "id": "aebd912a-8442-4754-96ca-ff711af0a1f0",
+      "name": "Split Out Leads",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [8976, 2976]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": "={{$node[\"Config\"].json.sheet_id}}",
+        "sheetName": "={{$node[\"Config\"].json.sheet_tab}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ $json.row_number }}",
+            "company": "={{ $json.company }}",
+            "name": "={{ $json.name }}",
+            "role": "={{ $json.role }}",
+            "email": "={{ $json.email }}",
+            "industry_focus": "={{ $json.industry_focus }}",
+            "services_interest": "={{ $json.services_interest }}",
+            "Status": "={{ $json.Status }}"
+          },
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a7a51295-f673-427a-a26c-4c52134469e7",
+      "name": "Sheets - Append Fake Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [9216, 2976],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": "={{$node[\"Config\"].json.sheet_id}}",
+        "sheetName": "={{$node[\"Config\"].json.sheet_tab}}",
+        "options": {}
+      },
+      "id": "5c9812a9-9057-4e08-a6fe-a78e5251ee31",
+      "name": "Sheets - Read All Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [9456, 2976],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": { "type": "string", "operation": "empty", "singleValue": true },
+              "leftValue": "={{$json.Status}}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "1f43245c-b514-44c2-a89c-b7cfc28091b3",
+      "name": "IF Status empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [9696, 2976]
+    },
+    {
+      "parameters": { "options": { "reset": true } },
+      "id": "ef6790c6-684e-44df-abd6-26cb5464bca5",
+      "name": "Loop (1 at a time)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [9936, 2928]
+    },
+    {
+      "parameters": {
+        "amount": "={{$node[\"Config\"].json.throttle_seconds}}",
+        "unit": "seconds"
+      },
+      "id": "e53cfe58-c658-4cfe-ac66-bab4606f8217",
+      "name": "Wait (throttle)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [10416, 2816],
+      "webhookId": "069e070f-d7be-449c-ba64-897c2397df22"
+    },
+    {
+      "parameters": {
+        "modelId": { "__rl": true, "value": "gpt-4.1-mini", "mode": "list", "cachedResultName": "gpt-4.1-mini" },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an expert business analyst.\n\nWrite a tight company snapshot for: {{$json.company}}.\n\nUse only the info provided in the lead fields. Do not invent.\n\nLead context:\nIndustry focus: {{$json.industry_focus}}\nServices interest: {{$json.services_interest}}\n\nReturn 4 bullets, each max 18 words:\n1) What they likely do\n2) Likely buyer pain\n3) Where AI automation helps\n4) Best entry offer for a 15 min call\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "e841a002-f167-4654-9eb7-540d8295c588",
+      "name": "OpenAI - Company Research",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [10576, 2976],
+      "credentials": {
+        "openAiApi": { "id": "sHNKcTxbhPX7Z73K", "name": "OpenAi account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json;\nconst txt = raw.output_text || raw.text || raw.output || (raw.output?.[0]?.content?.[0]?.text) || (raw.message?.content) || \"\";\n\nreturn [{\n  json: {\n    ...$node[\"Loop (1 at a time)\"].json,\n    Company_Reseach: String(txt || \"\").trim(),\n    Status: \"Researched\"\n  }\n}];"
+      },
+      "id": "67f6545f-e313-430e-bab8-31d9bd91c456",
+      "name": "Set - Research Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [10864, 2976]
+    },
+    {
+      "parameters": {
+        "modelId": { "__rl": true, "value": "gpt-4.1-mini", "mode": "list", "cachedResultName": "gpt-4.1-mini" },
+        "responses": {
+          "values": [
+            {
+              "content": "=Write a short intro email.\n\nSender: {{$node[\"Config\"].json.from_name}}, {{$node[\"Config\"].json.from_company}}\nRecipient: {{$json.name}}, {{$json.role}} at {{$json.company}}\n\nContext:\nIndustry focus: {{$json.industry_focus}}\nServices interest: {{$json.services_interest}}\nCompany research:\n{{$json.Company_Reseach}}\n\nRules:\nNo hype.\nMax 120 words.\nOne CTA: 15 minute call.\nReturn JSON only:\n{\n  \"emailSubject\": \"\",\n  \"emailBody\": \"\"\n}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "61b6b5b1-c564-4a87-8a15-6226c0da7034",
+      "name": "OpenAI - Draft Email",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [11072, 2976],
+      "credentials": {
+        "openAiApi": { "id": "sHNKcTxbhPX7Z73K", "name": "OpenAi account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json;\nconst txt = raw.output_text || raw.text || raw.output || (raw.output?.[0]?.content?.[0]?.text) || (raw.message?.content) || \"\";\n\nlet parsed;\ntry { parsed = typeof txt === 'string' ? JSON.parse(txt) : txt; } catch (e) { parsed = {}; }\n\nconst emailSubject = parsed.emailSubject || parsed.subject || \"Intro\";\nconst emailBody = parsed.emailBody || parsed.body || \"\";\n\nreturn [{\n  json: {\n    ...$node[\"Set - Research Result\"].json,\n    Status: \"Drafted\",\n    emailSubject,\n    emailBody,\n    draft_json: JSON.stringify({ emailSubject, emailBody })\n  }\n}];"
+      },
+      "id": "e9d0529c-32b3-4225-a3f3-78e2a87c2dde",
+      "name": "Normalize Draft Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [11344, 2976]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "={{$node[\"Config\"].json.sheet_id}}",
+        "sheetName": "={{$node[\"Config\"].json.sheet_tab}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Company_Reseach": "={{$json.Company_Reseach}}",
+            "Draft_Intro_Email": "={{$json.draft_json}}",
+            "Status": "={{$json.Status}}",
+            "email": "={{$json.email}}"
+          },
+          "matchingColumns": ["email"],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": { "cellFormat": "USER_ENTERED" }
+      },
+      "id": "93ebdf76-8132-48d4-a4c1-0038f22751a0",
+      "name": "Sheets - Update Draft + Research",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [11584, 2976],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "HSKZd2nGiLCRcvQ9", "name": "Google Sheets account" }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.email}}",
+        "subject": "={{$json.emailSubject}}",
+        "message": "={{$json.emailBody}}",
+        "options": {}
+      },
+      "id": "d286167d-c94d-4ad7-b527-09ae323df69f",
+      "name": "Gmail - Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [11824, 2976],
+      "webhookId": "a5cd42ee-9e80-4b9f-b494-b6dd5f60d795",
+      "credentials": {
+        "gmailOAuth2": { "id": "xuDVkeidMXEmsPib", "name": "Gmail account" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\nreturn [{\n  json: {\n    ...$node[\"Normalize Draft Output\"].json,\n    Status: \"Sent\",\n    date_added: now\n  }\n}];"
+      },
+      "id": "6bd96c6e-ba15-4f16-bb61-720c35e49145",
+      "name": "Set - Sent Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [12064, 2976]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": "={{$node[\"Config\"].json.sheet_id}}",
+        "sheetName": "={{$node[\"Config\"].json.sheet_tab}}",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "={{$json.Status}}",
+            "date_added": "={{$json.date_added}}",
+            "email": "={{$json.email}}"
+          },
+          "matchingColumns": ["email"],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": { "cellFormat": "USER_ENTERED" }
+      },
+      "id": "db824b3a-2485-4d7a-952a-d3abdb824484",
+      "name": "Sheets - Update Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [12304, 2976],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "HSKZd2nGiLCRcvQ9", "name": "Google Sheets account" }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "7917faef-58a7-4064-9883-b8bf264dae5f",
+      "name": "Next Lead",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [12544, 2976]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[{ "node": "Generate Fake Leads", "type": "main", "index": 0 }]] },
+    "Generate Fake Leads": { "main": [[{ "node": "Split Out Leads", "type": "main", "index": 0 }]] },
+    "Split Out Leads": { "main": [[{ "node": "Sheets - Append Fake Leads", "type": "main", "index": 0 }]] },
+    "Sheets - Append Fake Leads": { "main": [[{ "node": "Sheets - Read All Rows", "type": "main", "index": 0 }]] },
+    "Sheets - Read All Rows": { "main": [[{ "node": "IF Status empty", "type": "main", "index": 0 }]] },
+    "IF Status empty": { "main": [[{ "node": "Loop (1 at a time)", "type": "main", "index": 0 }]] },
+    "Loop (1 at a time)": { "main": [[{ "node": "Wait (throttle)", "type": "main", "index": 0 }], []] },
+    "Wait (throttle)": { "main": [[{ "node": "OpenAI - Company Research", "type": "main", "index": 0 }]] },
+    "OpenAI - Company Research": { "main": [[{ "node": "Set - Research Result", "type": "main", "index": 0 }]] },
+    "Set - Research Result": { "main": [[{ "node": "OpenAI - Draft Email", "type": "main", "index": 0 }]] },
+    "OpenAI - Draft Email": { "main": [[{ "node": "Normalize Draft Output", "type": "main", "index": 0 }]] },
+    "Normalize Draft Output": { "main": [[{ "node": "Sheets - Update Draft + Research", "type": "main", "index": 0 }]] },
+    "Sheets - Update Draft + Research": { "main": [[{ "node": "Gmail - Send Email", "type": "main", "index": 0 }]] },
+    "Gmail - Send Email": { "main": [[{ "node": "Set - Sent Status", "type": "main", "index": 0 }]] },
+    "Set - Sent Status": { "main": [[{ "node": "Sheets - Update Sent", "type": "main", "index": 0 }]] },
+    "Sheets - Update Sent": { "main": [[{ "node": "Next Lead", "type": "main", "index": 0 }]] },
+    "Next Lead": { "main": [[{ "node": "Loop (1 at a time)", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "573596b0d841eea28abd55273482a04618db2cede52284071b1cccb7e54d0cd7"
+  }
+}

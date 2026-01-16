@@ -1,0 +1,590 @@
+{
+  "name": "ConeyTech Tools - Modular",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [420, 240],
+      "id": "schedule_trigger",
+      "name": "Weekly Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define market segments\nconst segments = [\n  { name: \"broker tech\", query: \"UK broker technology software updates last 30 days\" },\n  { name: \"ea tech\", query: \"UK estate agent property technology updates last 30 days\" },\n  { name: \"convey tech\", query: \"UK conveyancing technology software updates last 30 days\" },\n  { name: \"lender tech\", query: \"UK mortgage lender technology updates last 30 days\" }\n];\n\nreturn segments.map(s => ({ json: s }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 240],
+      "id": "generate_segments",
+      "name": "Generate Segments"
+    },
+    {
+      "parameters": {
+        "url": "https://newsdata.io/api/1/latest",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "pub_6c3d483466a9475ca23b3aa3eb3c02b9"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [860, 240],
+      "id": "fetch_news",
+      "name": "Fetch News"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract articles from API response\nconst response = $input.first().json;\nconst articles = response.results || response.articles || [];\nconst segment = $input.first().json.segment || $json.name;\n\nif (!articles.length) {\n  return [];\n}\n\nreturn articles.map(article => ({\n  json: {\n    title: article.title || \"\",\n    description: article.description || article.snippet || \"\",\n    url: article.link || article.url || \"\",\n    source: article.source_id || (article.source && article.source.name) || \"\",\n    published_at: article.pubDate || article.publishedAt || null,\n    segment: segment\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 240],
+      "id": "normalize_articles",
+      "name": "Normalize Articles"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ JSON.stringify($input.all().map(i => i.json)) }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "You are a property technology analyst.\n\nExtract software tools from these news articles.\n\nRules:\n- Only include tools used by brokers, lenders, estate agents, conveyancers, or applicants\n- Ignore general news, opinion pieces, or unrelated tech\n- Return valid JSON array only\n\nRequired fields per tool:\n- tool_name (string)\n- website (string, URL)\n- segment (string: broker tech | ea tech | convey tech | lender tech)\n- geography (string: UK | Global)\n- summary (string, one sentence)\n- key_use_case (string)\n- target_user (string)\n- funding_stage (string or null)\n- nature_of_change (string: new launch | feature update | funding | partnership | acquisition | other)\n- main_source_url (string, URL)\n\nIf no tools found, return []"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [1300, 240],
+      "id": "extract_tools",
+      "name": "Extract Tools (LLM)",
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse LLM response\nconst raw = $input.first().json.output || $input.first().json.text || \"\";\n\nlet cleaned = raw.trim();\ncleaned = cleaned.replace(/```json/gi, \"\");\ncleaned = cleaned.replace(/```/g, \"\");\ncleaned = cleaned.trim();\n\nlet tools;\ntry {\n  tools = JSON.parse(cleaned);\n} catch (e) {\n  console.error(\"Failed to parse LLM output:\", e);\n  return [];\n}\n\nif (!Array.isArray(tools)) {\n  tools = [tools];\n}\n\n// Normalize and validate\nreturn tools\n  .filter(t => t.tool_name && t.website)\n  .map(t => ({\n    json: {\n      tool_name: t.tool_name.trim(),\n      website: t.website.trim(),\n      segment: t.segment || \"unknown\",\n      geography: t.geography || \"UK\",\n      summary: t.summary || \"\",\n      key_use_case: t.key_use_case || \"\",\n      target_user: t.target_user || \"\",\n      funding_stage: t.funding_stage || null,\n      nature_of_change: t.nature_of_change || \"other\",\n      main_source_url: t.main_source_url || \"\",\n      domain: new URL(t.website).hostname.replace(/^www\\./, \"\")\n    }\n  }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 240],
+      "id": "parse_tools",
+      "name": "Parse Tools"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2455784d-e310-805d-9383-ed4a2ffbf2cb",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools"
+        },
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "or",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Name",
+              "condition": "equals",
+              "value": "={{ $json.tool_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1740, 240],
+      "id": "check_existing",
+      "name": "Check if Tool Exists",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "uJZ3ccMuVZ3RxvlU",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "exists_check",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1960, 240],
+      "id": "route_new_or_existing",
+      "name": "New or Existing?"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2455784d-e310-805d-9383-ed4a2ffbf2cb",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools"
+        },
+        "title": "={{ $json.tool_name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Website",
+              "urlValue": "={{ $json.website }}"
+            },
+            {
+              "key": "Segment",
+              "selectValue": "={{ $json.segment }}"
+            },
+            {
+              "key": "Geography",
+              "selectValue": "={{ $json.geography }}"
+            },
+            {
+              "key": "Summary",
+              "richTextValues": [
+                {
+                  "textContent": "={{ $json.summary }}"
+                }
+              ]
+            },
+            {
+              "key": "Status",
+              "selectValue": "new this month"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2180, 140],
+      "id": "create_tool",
+      "name": "Create New Tool",
+      "credentials": {
+        "notionApi": {
+          "id": "uJZ3ccMuVZ3RxvlU",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ JSON.stringify({\n  existing: $items('Check if Tool Exists')[0].json,\n  new: $json\n}) }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "Compare existing Notion record with new search data.\n\nMaterial updates:\n- New feature\n- Pricing change\n- Funding round\n- Partnership or integration\n- Acquisition\n- Major repositioning\n- UK market expansion\n\nIf material update exists: Return one sentence describing it.\nIf no update: Return exactly \"NO UPDATE\"\n\nNothing else."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [2180, 340],
+      "id": "check_updates",
+      "name": "Check for Updates (LLM)",
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "update_check",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "NO UPDATE",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2400, 340],
+      "id": "has_update",
+      "name": "Has Update?"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $items('Check if Tool Exists')[0].json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "selectValue": "Updated this month"
+            },
+            {
+              "key": "Change Log",
+              "richTextValues": [
+                {
+                  "textContent": "={{ $now.toFormat('yyyy-MM-dd') }}: {{ $json.output }}"
+                }
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2620, 240],
+      "id": "update_tool",
+      "name": "Update Tool",
+      "credentials": {
+        "notionApi": {
+          "id": "uJZ3ccMuVZ3RxvlU",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ JSON.stringify($json) }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "Score relevance to UK mortgage and property workflow.\n\nScale:\n1 = irrelevant\n2 = minor relevance\n3 = useful\n4 = strong relevance\n5 = highly relevant to brokers, lenders, conveyancers, or estate agents\n\nReturn only the number. No text."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [2840, 240],
+      "id": "score_relevance",
+      "name": "Score Relevance (LLM)",
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id || $items('Create New Tool')[0].json.id || $items('Update Tool')[0].json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Relevance",
+              "numberValue": "={{ parseInt($json.output) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [3060, 240],
+      "id": "save_relevance",
+      "name": "Save Relevance Score",
+      "credentials": {
+        "notionApi": {
+          "id": "uJZ3ccMuVZ3RxvlU",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2455784d-e310-805d-9383-ed4a2ffbf2cb",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "or",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status",
+              "condition": "equals",
+              "value": "new this month"
+            },
+            {
+              "key": "Status",
+              "condition": "equals",
+              "value": "Updated this month"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [420, 540],
+      "id": "get_digest_tools",
+      "name": "Get Tools for Digest"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare digest data\nconst tools = $input.all().map(item => {\n  const props = item.json.properties;\n  return {\n    tool_name: props.Name?.title[0]?.plain_text || \"Untitled\",\n    segment: props.Segment?.select?.name || \"unknown\",\n    geography: props.Geography?.select?.name || \"UK\",\n    summary: props.Summary?.rich_text[0]?.plain_text || \"\",\n    status: props.Status?.select?.name || \"unknown\",\n    relevance: props.Relevance?.number || 0,\n    change_log: props['Change Log']?.rich_text[0]?.plain_text || \"\"\n  };\n});\n\n// Group by segment\nconst grouped = {\n  \"BrokerTech\": tools.filter(t => t.segment === \"broker tech\"),\n  \"EA Tech\": tools.filter(t => t.segment === \"ea tech\"),\n  \"ConveyTech\": tools.filter(t => t.segment === \"convey tech\"),\n  \"LenderTech\": tools.filter(t => t.segment === \"lender tech\"),\n  \"Global\": tools.filter(t => t.geography === \"Global\")\n};\n\nreturn [{ json: { grouped, total: tools.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 540],
+      "id": "prepare_digest",
+      "name": "Prepare Digest Data"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ JSON.stringify($json.grouped) }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "Create a monthly digest email for UK property and mortgage technology updates.\n\nFormat:\n- Use clear segment headings (BrokerTech, EA Tech, ConveyTech, LenderTech, Global)\n- Within each segment: New tools first, then updates\n- One sentence per tool\n- Highlight tools with relevance 4 or 5 with \"⭐\"\n- Keep writing compact and professional\n- Do not invent details\n\nOutput plain text suitable for email body."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [860, 540],
+      "id": "build_digest",
+      "name": "Build Digest (LLM)",
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mrchspence@gmail.com",
+        "subject": "={{ 'ConeyTech Monthly – ' + $now.toFormat('MMMM yyyy') }}",
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1080, 540],
+      "id": "send_digest",
+      "name": "Send Digest Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xuDVkeidMXEmsPib",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## MODULE 1: Tool Discovery\nWeekly scan of UK property tech news → Extract tools → Check if exists → Create or update",
+        "height": 240,
+        "width": 2880,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [380, 80],
+      "id": "note_module_1",
+      "name": "Module 1 Header"
+    },
+    {
+      "parameters": {
+        "content": "## MODULE 2: Monthly Digest\nCollect tools with status = new/updated → Build formatted digest → Email",
+        "height": 240,
+        "width": 920,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [380, 480],
+      "id": "note_module_2",
+      "name": "Module 2 Header"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "monthDays",
+              "monthDaysInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 540],
+      "id": "monthly_trigger",
+      "name": "Monthly Trigger"
+    }
+  ],
+  "connections": {
+    "Weekly Trigger": {
+      "main": [[{ "node": "Generate Segments", "type": "main", "index": 0 }]]
+    },
+    "Generate Segments": {
+      "main": [[{ "node": "Fetch News", "type": "main", "index": 0 }]]
+    },
+    "Fetch News": {
+      "main": [[{ "node": "Normalize Articles", "type": "main", "index": 0 }]]
+    },
+    "Normalize Articles": {
+      "main": [[{ "node": "Extract Tools (LLM)", "type": "main", "index": 0 }]]
+    },
+    "Extract Tools (LLM)": {
+      "main": [[{ "node": "Parse Tools", "type": "main", "index": 0 }]]
+    },
+    "Parse Tools": {
+      "main": [[{ "node": "Check if Tool Exists", "type": "main", "index": 0 }]]
+    },
+    "Check if Tool Exists": {
+      "main": [[{ "node": "New or Existing?", "type": "main", "index": 0 }]]
+    },
+    "New or Existing?": {
+      "main": [
+        [{ "node": "Check for Updates (LLM)", "type": "main", "index": 0 }],
+        [{ "node": "Create New Tool", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create New Tool": {
+      "main": [[{ "node": "Score Relevance (LLM)", "type": "main", "index": 0 }]]
+    },
+    "Check for Updates (LLM)": {
+      "main": [[{ "node": "Has Update?", "type": "main", "index": 0 }]]
+    },
+    "Has Update?": {
+      "main": [
+        [{ "node": "Update Tool", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Update Tool": {
+      "main": [[{ "node": "Score Relevance (LLM)", "type": "main", "index": 0 }]]
+    },
+    "Score Relevance (LLM)": {
+      "main": [[{ "node": "Save Relevance Score", "type": "main", "index": 0 }]]
+    },
+    "Monthly Trigger": {
+      "main": [[{ "node": "Get Tools for Digest", "type": "main", "index": 0 }]]
+    },
+    "Get Tools for Digest": {
+      "main": [[{ "node": "Prepare Digest Data", "type": "main", "index": 0 }]]
+    },
+    "Prepare Digest Data": {
+      "main": [[{ "node": "Build Digest (LLM)", "type": "main", "index": 0 }]]
+    },
+    "Build Digest (LLM)": {
+      "main": [[{ "node": "Send Digest Email", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "573596b0d841eea28abd55273482a04618db2cede52284071b1cccb7e54d0cd7"
+  },
+  "tags": []
+}

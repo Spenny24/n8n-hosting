@@ -1,0 +1,1373 @@
+{
+  "name": "Tool Discovery",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        208
+      ],
+      "id": "5f3ad550-92b5-4cf5-9edd-8f2527d13a31",
+      "name": "01 When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23e0e16b-d52d-4cfd-9f74-832685355b9a",
+              "name": "run_id",
+              "value": "={{ $workflow.id + \"-\" + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a75cfef2-0f83-47c9-9973-12b4a15cff5f",
+              "name": "run_ts_utc",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "ddd033d9-9ebf-4229-8356-43ab113449b0",
+              "name": "source",
+              "value": "={{ \"coneytech\" }}",
+              "type": "string"
+            },
+            {
+              "id": "d245fa08-53d2-4a29-8f2a-dee2dffc4369",
+              "name": "query",
+              "value": "={{ $json.query ?? \"\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        208
+      ],
+      "id": "9924d611-8f02-4b30-81d4-7b01d672987d",
+      "name": "02 Set Run Context"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74c5c6c6-dcce-4dbc-9e34-0d27e88828dd",
+              "name": "segments",
+              "value": "=[\n{\"segment\":\"EA Tech\",\"q\":\"UK estate agent software AI tool CRM lettings platform\"},\n{\"segment\":\"PropertyTech\",\"q\":\"UK property technology platform AI tool building management tenant experience\"},\n{\"segment\":\"ConveyancerTech\",\"q\":\"UK conveyancing software AI tool case management AML ID verification\"},\n{\"segment\":\"MortgageTech\",\"q\":\"UK mortgage origination platform AI tool broker CRM sourcing\"},\n{\"segment\":\"LendingTech\",\"q\":\"UK lending platform AI tool underwriting decisioning\"},\n{\"segment\":\"ComplianceTech\",\"q\":\"UK regtech compliance AML KYC monitoring AI tool\"}\n]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        208
+      ],
+      "id": "5abe92ec-98a5-45b3-8192-2b7fa041cbf6",
+      "name": "03 Segment Seed"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "segments",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        768,
+        208
+      ],
+      "id": "7aa5eca6-80d9-49f3-8da4-8216c0a7bc1d",
+      "name": "04 Split Segments"
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "81bfeef41474e43d5d2d76345e4863770ab27fcf7085e62f39cc8369bae0e0f7"
+            },
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "gl",
+              "value": "gb"
+            },
+            {
+              "name": "hl",
+              "value": "en"
+            },
+            {
+              "name": "num",
+              "value": "10"
+            },
+            {
+              "name": "q",
+              "value": "={{$json.segments.q}}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1024,
+        208
+      ],
+      "id": "58456c2a-b9bb-4469-ab5f-ca649e074c93",
+      "name": "05 Fetch News SerpApi",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "organic_results",
+        "include": "allOtherFields",
+        "options": {
+          "includeBinary": false
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        208
+      ],
+      "id": "1efbe14e-a5a2-4a42-ade2-b22b85d61b55",
+      "name": "06 Split Results",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "Return only valid JSON.\n\nDecide if this is:\n- a specific product or software → is_tool = true\n- a market or tech trend → is_tool = false\n\nsegment: {{ $json.segments.segment }}\ntitle: {{ $json.title || $json.news_title || \"\" }}\nsnippet: {{ $json.snippet || $json.summary || \"\" }}\nurl: {{ $json.link || \"\" }}\n\nJSON schema:\n{\n  \"segment\": \"\",\n  \"is_tool\": true,\n  \"tool_name\": \"\",\n  \"website\": \"\",\n  \"summary\": \"\",\n  \"key_use_case\": \"\",\n  \"score_relevance\": 0,\n  \"score_confidence\": 0,\n  \"trend_name\": \"\",\n  \"trend_summary\": \"\"\n}\n"
+            },
+            {
+              "role": "system",
+              "content": "You are classifying and extracting structured data from search results.\n\nInput will describe either:\n\na software / technology tool\n\na news article\n\nor something else\n\nYour task is to return ONE JSON OBJECT that matches the schema below.\n\nYou must always return all fields.\n\nIf information is missing, return an empty string or 0 as appropriate.\n\nOUTPUT RULES (CRITICAL)\n\nOutput ONLY valid JSON.\n\nDo NOT wrap in ```\n\nDo NOT include comments.\n\nDo NOT include extra fields.\n\nBooleans must be real booleans, not strings.\n\nNumbers must be real numbers, not strings.\n\nENTITY CLASSIFICATION RULES\n\nentity_type must be one of:\n\n\"tool\"\n\n\"news\"\n\n\"other\"\n\nis_tool must be:\n\ntrue ONLY if entity_type is \"tool\"\n\nfalse for all other cases\n\nExamples:\n\nSaaS product, platform, vendor, AI system → entity_type = \"tool\", is_tool = true\n\nNews article, press coverage, media story → entity_type = \"news\", is_tool = false\n\nOpinion, blog, unclear content → entity_type = \"other\", is_tool = false\n\nSEGMENT RULES\n\nsegment must be one of these values if applicable:\n\n\"EA Tech\"\n\n\"PropertyTech\"\n\n\"FinTech\"\n\n\"LegalTech\"\n\n\"MarTech\"\n\n\"HealthTech\"\n\n\"Other\"\n\nChoose the closest match.\nIf unclear, use \"Other\".\n\nSCORING RULES\n\nscore_relevance:\n0–10 based on relevance to the segment and modern technology\n\nscore_confidence:\n0–10 based on how confident the classification is\n\nUse integers only.\n\nSCHEMA (YOU MUST MATCH THIS EXACTLY)\n\n{\n\"segment\": \"\",\n\"entity_type\": \"\",\n\"is_tool\": false,\n\"tool_name\": \"\",\n\"website\": \"\",\n\"summary\": \"\",\n\"key_use_case\": \"\",\n\"target_user\": \"\",\n\"funding_stage\": \"\",\n\"main_source_url\": \"\",\n\"score_relevance\": 0,\n\"score_confidence\": 0,\n\"tags\": \"\"\n}\n\nFIELD GUIDANCE\n\ntool_name\nName of the product or company.\nEmpty string if not a tool.\n\nwebsite\nOfficial product or company website.\nEmpty string if unknown or not a tool.\n\nsummary\nOne concise sentence describing the item.\n\nkey_use_case\nPrimary practical use.\nEmpty string if not a tool.\n\ntarget_user\nWho uses it (e.g. estate agents, enterprises, developers).\nEmpty string if not a tool.\n\nfunding_stage\nSeed, Series A, Series B, Public, Private, Unknown.\nEmpty string if not known.\n\nmain_source_url\nThe main URL referenced in the input.\n\ntags\nComma-separated keywords.\nExample: \"ai, crm, property, automation\""
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        208
+      ],
+      "id": "2c5c6940-ba0e-4b29-bf76-4a4ae12fd338",
+      "name": "07 LLM Extract Tool",
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract from various possible LLM output structures\nlet raw = $json.output ?? $json.content?.[0]?.text ?? $json.text ?? $json;\nlet o = raw;\n\n// If it's a string, try to parse it\nif (typeof o === 'string') {\n  try { o = JSON.parse(o); } catch (e) { o = {}; }\n}\n\nconst fallbackUrl = $json.link || $json.url || '';\n\nreturn [{\n  json: {\n    segment: String(o.segment || \"\"),\n    entity_type: String(o.entity_type || \"\"),\n    is_tool: Boolean(o.is_tool),\n    tool_name: String(o.tool_name || \"\"),\n    website: String(o.website || \"\"),\n    summary: String(o.summary || \"\"),\n    key_use_case: String(o.key_use_case || \"\"),\n    target_user: String(o.target_user || \"\"),\n    funding_stage: String(o.funding_stage || \"\"),\n    main_source_url: String(o.main_source_url || fallbackUrl || \"\"),\n    score_relevance: Number(o.score_relevance || 0),\n    score_confidence: Number(o.score_confidence || 0),\n    tags: String(o.tags || \"\")\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        208
+      ],
+      "id": "3f3302bb-8dbc-4622-b074-58e9d5ab4f89",
+      "name": "07b Parse Tool JSON"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "af1dc73f-92da-40b8-9f98-d1119183dc3b",
+              "leftValue": "={{$json.is_tool}}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1888,
+        208
+      ],
+      "id": "5d20c81c-ceaf-4163-b19e-6fcd97265000",
+      "name": "08 IF Tool"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "run-id-field",
+              "name": "run_id",
+              "value": "={{ $workflow.id + \"-\" + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "run-ts-field",
+              "name": "run_ts_utc",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "59800b16-92e0-4b1a-b728-1802ccfa7f0d",
+              "name": "source",
+              "value": "={{ \"serpapi_google\" }}",
+              "type": "string"
+            },
+            {
+              "id": "f0105fed-2007-4ab0-9b2e-ee0396eaf760",
+              "name": "tool_name",
+              "value": "={{ $json.tool_name }}",
+              "type": "string"
+            },
+            {
+              "id": "0508b52e-b119-4281-8c47-a66c9fc9b567",
+              "name": "segment",
+              "value": "={{ $json.segment }}",
+              "type": "string"
+            },
+            {
+              "id": "a8640398-1539-454f-bd4a-7813cd20d12f",
+              "name": "geography",
+              "value": "={{ $json.geography ?? \"UK\" }}",
+              "type": "string"
+            },
+            {
+              "id": "a4192c5c-dce2-4800-aa05-51a15e364746",
+              "name": "summary",
+              "value": "={{ $json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "127e0e0d-1caf-46bf-bbad-265917ea24a5",
+              "name": "key_use_case",
+              "value": "={{ $json.key_use_case ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "97ed3ba7-8cf1-44e7-a471-abc08bef62e0",
+              "name": "target_user",
+              "value": "={{ $json.target_user ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "af5d5566-0416-4cdd-8547-45f8e9cbb593",
+              "name": "funding_stage",
+              "value": "={{ $json.funding_stage ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "60f41a60-7eb2-405c-b80a-9915b454abfb",
+              "name": "nature_of_change",
+              "value": "={{ $json.nature_of_change ?? \"New mention in public sources\" }}",
+              "type": "string"
+            },
+            {
+              "id": "c64db51d-8b10-42f8-977f-3aeb441edf12",
+              "name": "main_source_url",
+              "value": "={{$json.main_source_url || \"\"}}",
+              "type": "string"
+            },
+            {
+              "id": "0e89e8e4-35a5-4d1c-8494-8d4988275c38",
+              "name": "score_relevance",
+              "value": "={{ Number($json.score_relevance ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "e73d0ea1-f67b-4eba-a4e7-acd06d8611fe",
+              "name": "score_confidence",
+              "value": "={{ Number($json.score_confidence ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "tags-field-new",
+              "name": "tags",
+              "value": "={{ $json.tags ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "262dfccf-324f-450c-8ff6-fc4706b94bd4",
+              "name": "status",
+              "value": "={{ \"ok\" }}",
+              "type": "string"
+            },
+            {
+              "id": "3e2d9069-7305-41ba-a6d1-37ef4195c956",
+              "name": "error_message",
+              "value": "={{ \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "9d433089-5056-4beb-8edd-c2fe90d0ef7a",
+              "name": "raw_json",
+              "value": "={{ JSON.stringify($json) }}",
+              "type": "string"
+            },
+            {
+              "id": "bbb8e908-fce6-4564-8d7a-8068748c0034",
+              "name": "website",
+              "value": "={{ $json.website }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2112,
+        192
+      ],
+      "id": "70329a8c-e897-4d7e-8928-119543a243f6",
+      "name": "09 Normalize Tool Item"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b9a2e707-c60c-4116-b2a5-4da6c537fe90",
+              "leftValue": "={{$json.tool_name}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c137bdb2-fc2d-48f8-9e1d-d153889848ba",
+              "leftValue": "={{$json.main_source_url}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "fb65e688-4a97-4186-aeb8-d52c333c3dd0",
+              "leftValue": "={{$json.segment}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c35db956-0a9e-4b81-b5d2-3baddc984be6",
+              "leftValue": "={{$json.score_relevance}}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2288,
+        192
+      ],
+      "id": "7554d78a-df27-4271-99f1-5c2267483f16",
+      "name": "10 Validate"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools DB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "tools_master",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{$json.run_id}}",
+            "run_ts_utc": "={{$json.run_ts_utc}}",
+            "source": "={{$json.source}}",
+            "tool_name": "={{$json.tool_name}}",
+            "website": "={{$json.website}}",
+            "segment": "={{$json.segment}}",
+            "geography": "={{$json.geography}}",
+            "summary": "={{$json.summary}}",
+            "key_use_case": "={{$json.key_use_case}}",
+            "target_user": "={{$json.target_user}}",
+            "funding_stage": "={{$json.funding_stage}}",
+            "nature_of_change": "={{$json.nature_of_change}}",
+            "main_source_url": "={{$json.main_source_url}}",
+            "score_relevance": "={{$json.score_relevance}}",
+            "score_confidence": "={{$json.score_confidence}}",
+            "tags": "={{$json.tags}}",
+            "status": "={{$json.status}}",
+            "error_message": "={{$json.error_message}}",
+            "raw_json": "={{$json.raw_json}}"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_ts_utc",
+              "displayName": "run_ts_utc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tool_name",
+              "displayName": "tool_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website",
+              "displayName": "website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "segment",
+              "displayName": "segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "geography",
+              "displayName": "geography",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "key_use_case",
+              "displayName": "key_use_case",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "target_user",
+              "displayName": "target_user",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "funding_stage",
+              "displayName": "funding_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nature_of_change",
+              "displayName": "nature_of_change",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "main_source_url",
+              "displayName": "main_source_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_relevance",
+              "displayName": "score_relevance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "score_confidence",
+              "displayName": "score_confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_json",
+              "displayName": "raw_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2528,
+        176
+      ],
+      "id": "bf549d03-0269-43d7-95c8-3d2bb68187a8",
+      "name": "11 Google Sheets Append, tools_master",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "890160ce-f142-45a7-b7e0-59b46c4ed907",
+              "name": "run_id",
+              "value": "={{ $workflow.id + \"-\" + $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "408abb70-acff-4d55-b15a-5cd00d1aa82c",
+              "name": "run_ts_utc",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "5a5d0ec0-6045-4c06-b6ed-f603bb59d2cf",
+              "name": "source",
+              "value": "={{ \"serpapi_news\" }}",
+              "type": "string"
+            },
+            {
+              "id": "1d181898-a697-49d1-9297-4bd62bf4a31a",
+              "name": "status",
+              "value": "={{ $json.is_tool === false ? \"not_a_tool\" : \"failed_validation\" }}",
+              "type": "string"
+            },
+            {
+              "id": "10a021bf-2647-434f-82fd-e16fdadc482b",
+              "name": "error_message",
+              "value": "={{ $json.is_tool === false ? \"Filtered by LLM\" : \"Missing required fields or score below threshold\" }}",
+              "type": "string"
+            },
+            {
+              "id": "108f2aaa-b30b-4521-9440-4deea045f3d0",
+              "name": "raw_json",
+              "value": "={{ JSON.stringify($json) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        608
+      ],
+      "id": "9d9c2a78-00f9-4244-a6e2-c8da1baac5dd",
+      "name": "12 Build Dead Letter Row"
+    },
+    {
+      "parameters": {
+        "jsCode": "const seen = new Set();\nconst out = [];\n\nfor (const item of items) {\nconst link = (item.json.link || item.json.url || \"\").toString().toLowerCase().trim();\nconst title = (item.json.title || \"\").toString().toLowerCase().trim();\n\nconst key = link || title;\n\nif (!key) {\nout.push(item);\ncontinue;\n}\n\nif (seen.has(key)) continue;\nseen.add(key);\n\nout.push(item);\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        608
+      ],
+      "id": "9ae88210-e2d6-4372-a3fb-14cf32dd011f",
+      "name": "13 Deduplicate"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools DB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1996638387,
+          "mode": "list",
+          "cachedResultName": "dead_letter",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U/edit#gid=1996638387"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_id": "={{$json.run_id}}",
+            "run_ts_utc": "={{$json.run_ts_utc}}",
+            "source": "={{$json.source}}",
+            "status": "={{$json.status}}",
+            "error_message": "={{$json.error_message}}",
+            "raw_json": "={{$json.raw_json}}"
+          },
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "run_ts_utc",
+              "displayName": "run_ts_utc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "raw_json",
+              "displayName": "raw_json",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2416,
+        608
+      ],
+      "id": "74c7ce11-5f3c-4dc5-8dbe-9539f82603d8",
+      "name": "14 Google Sheets Append, dead_letter",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools DB",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 900226742,
+          "mode": "list",
+          "cachedResultName": "segment_trends",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OO5QbtNiJeCNK_zl-B-rTl9_FSB7rtphw67YKp0RZ7U/edit#gid=900226742"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "segment": "={{ $json.segment }}",
+            "geography": "={{ $json.geography }}",
+            "executive_summary": "={{ $json.executive_summary }}",
+            "why_it_matters": "={{$json.why_it_matters}}",
+            "key_trends": "={{ $json.key_trends }}",
+            "key_use_cases": "={{ $json.key_use_cases }}",
+            "notable_tools": "={{ $json.notable_tools }}",
+            "example_sources": "={{ $json.example_sources }}"
+          },
+          "schema": [
+            {
+              "id": "segment",
+              "displayName": "segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "geography",
+              "displayName": "geography",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "executive_summary",
+              "displayName": "executive_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "why_it_matters",
+              "displayName": "why_it_matters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "key_trends",
+              "displayName": "key_trends",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "key_use_cases",
+              "displayName": "key_use_cases",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "notable_tools",
+              "displayName": "notable_tools",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "example_sources",
+              "displayName": "example_sources",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        736
+      ],
+      "id": "4fd5137f-0fbd-4abf-93f0-cd73fa492d6d",
+      "name": "15 Google Sheets Append Segment Trends",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\nfor (const item of items) {\nconst j = item.json || {};\nconst seg = j.segments || {};\n\nconst segment = seg.segment || \"\";\nconst geography = \"UK\";\n\nconst organic = j.body?.organic_results || j.organic_results || [];\nconst evidence = Array.isArray(organic)\n? organic.slice(0, 8).map(r => ({\ntitle: r?.title || \"\",\nsnippet: r?.snippet || \"\",\nlink: r?.link || \"\"\n}))\n: [];\n\nout.push({\njson: {\nsegment,\ngeography,\nevidence\n}\n});\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        512
+      ],
+      "id": "f2e6b158-5b18-4e67-97eb-15c80c37c19a",
+      "name": "05b Build Segment Evidence",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You analyze search results and extract structured insights. Return ONLY valid JSON with NO markdown code blocks. The output must match the exact schema provided."
+            },
+            {
+              "content": "Analyze this evidence and return structured insights.\n\nInput:\nsegment: {{ $json.segment }}\ngeography: {{ $json.geography }}\nevidence: {{ JSON.stringify($json.evidence) }}\n\nReturn ONLY this JSON structure (NO markdown, NO code blocks):\n{\n\"segment\": \"<segment name>\",\n\"geography\": \"<geography>\",\n\"executive_summary\": \"<1-2 sentence overview>\",\n\"why_it_matters\": \"<2-3 sentences on significance>\",\n\"key_trends\": \"<newline-separated phrases, 3-6 items>\",\n\"key_use_cases\": \"<newline-separated phrases, 3-6 items>\",\n\"notable_tools\": \"<comma-separated product names found in evidence>\",\n\"example_sources\": \"<newline-separated URLs from evidence>\"\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        944,
+        736
+      ],
+      "id": "90749f19-6a2c-461b-af3f-041a0c8d18e8",
+      "name": "05c LLM Segment Trends",
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract from various possible LLM output structures\nlet raw = $json.output ?? $json.content?.[0]?.text ?? $json.text ?? $json;\nlet o = raw;\n\n// If it's a string, try to parse it\nif (typeof o === 'string') {\n  try { o = JSON.parse(o); } catch (e) { o = {}; }\n}\n\nreturn [{\n  json: {\n    segment: String(o.segment || \"\"),\n    geography: String(o.geography || \"\"),\n    executive_summary: String(o.executive_summary || \"\"),\n    why_it_matters: String(o.why_it_matters || \"\"),\n    key_trends: String(o.key_trends || \"\"),\n    key_use_cases: String(o.key_use_cases || \"\"),\n    notable_tools: String(o.notable_tools || \"\"),\n    example_sources: String(o.example_sources || \"\")\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        736
+      ],
+      "id": "670dfb10-46ab-4d66-aca0-19efed1a9793",
+      "name": "05d Parse Segment Trends"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        352,
+        512
+      ],
+      "id": "2b49af0e-aa85-4f39-a949-3a93dd140f66",
+      "name": "05x Merge Segment + SerpApi"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "debug-seg",
+              "name": "debug_segment",
+              "value": "={{$json.segments?.segment}}",
+              "type": "string"
+            },
+            {
+              "id": "debug-body",
+              "name": "debug_has_body",
+              "value": "={{$json.body ? true : false}}",
+              "type": "boolean"
+            },
+            {
+              "id": "debug-count",
+              "name": "debug_organic_count",
+              "value": "={{$json.body?.organic_results?.length || 0}}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        512
+      ],
+      "id": "b8363f75-6e08-4608-9e1d-fd4400b1cf96",
+      "name": "05x Debug Merge Output"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0a04cc9-dd68-42d2-bacc-454e0730c55d",
+              "name": "prompt",
+              "value": "={{\n`Return only valid JSON.\n\nOutput JSON schema:\n{\n\"segment\":\"\",\n\"geography\":\"\",\n\"executive_summary\":\"\",\n\"why_it_matters\":\"\",\n\"key_trends\":\"\",\n\"key_use_cases\":\"\",\n\"notable_tools\":\"\",\n\"example_sources\":\"\"\n}\n\nRules:\nkey_trends = newline-separated phrases\nkey_use_cases = newline-separated phrases\nnotable_tools = comma-separated names\nexample_sources = newline-separated URLs\nDo not return arrays.\n\nInput:\nsegment: ${$json.segment}\ngeography: ${$json.geography}\nevidence: ${JSON.stringify($json.evidence)}\n`\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        512
+      ],
+      "id": "c87b0abe-d0a7-4498-8ea8-b14b6b845f0a",
+      "name": "05bb Build Segment Prompt"
+    }
+  ],
+  "connections": {
+    "01 When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "02 Set Run Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 Set Run Context": {
+      "main": [
+        [
+          {
+            "node": "03 Segment Seed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 Segment Seed": {
+      "main": [
+        [
+          {
+            "node": "04 Split Segments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 Split Segments": {
+      "main": [
+        [
+          {
+            "node": "05 Fetch News SerpApi",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "05x Merge Segment + SerpApi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 Split Results": {
+      "main": [
+        [
+          {
+            "node": "07 LLM Extract Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 Fetch News SerpApi": {
+      "main": [
+        [
+          {
+            "node": "06 Split Results",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "05x Merge Segment + SerpApi",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "07 LLM Extract Tool": {
+      "main": [
+        [
+          {
+            "node": "07b Parse Tool JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "07b Parse Tool JSON": {
+      "main": [
+        [
+          {
+            "node": "08 IF Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "08 IF Tool": {
+      "main": [
+        [
+          {
+            "node": "09 Normalize Tool Item",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "12 Build Dead Letter Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "09 Normalize Tool Item": {
+      "main": [
+        [
+          {
+            "node": "10 Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 Validate": {
+      "main": [
+        [
+          {
+            "node": "11 Google Sheets Append, tools_master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 Build Dead Letter Row": {
+      "main": [
+        [
+          {
+            "node": "13 Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "13 Deduplicate": {
+      "main": [
+        [
+          {
+            "node": "14 Google Sheets Append, dead_letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05b Build Segment Evidence": {
+      "main": [
+        [
+          {
+            "node": "05bb Build Segment Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05c LLM Segment Trends": {
+      "main": [
+        [
+          {
+            "node": "05d Parse Segment Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05d Parse Segment Trends": {
+      "main": [
+        [
+          {
+            "node": "15 Google Sheets Append Segment Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05x Merge Segment + SerpApi": {
+      "main": [
+        [
+          {
+            "node": "05x Debug Merge Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05x Debug Merge Output": {
+      "main": [
+        [
+          {
+            "node": "05b Build Segment Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05bb Build Segment Prompt": {
+      "main": [
+        [
+          {
+            "node": "05c LLM Segment Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "573596b0d841eea28abd55273482a04618db2cede52284071b1cccb7e54d0cd7"
+  },
+  "id": "",
+  "tags": []
+}
+

@@ -1,0 +1,346 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8d19ba63-f5bf-44cf-a4ff-dc13ba1ca2a3",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [12048, 4192]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY",
+          "mode": "list",
+          "cachedResultName": "Fake Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "98cd09cd-ec9d-4991-82d3-3f2fb71363cd",
+      "name": "Sheets - Read All Rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [12336, 4192],
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    from_name: \"Your Name\",\n    from_company: \"Your Company\"\n  }\n}];"
+      },
+      "id": "config-node-12345",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [12240, 4000],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": { "type": "string", "operation": "empty", "singleValue": true },
+              "leftValue": "={{$json.Status}}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "045c0350-c8a4-422d-a6e6-dd8c1d797c5e",
+      "name": "IF Status empty",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [12528, 4192]
+    },
+    {
+      "parameters": {
+        "options": { "reset": true }
+      },
+      "id": "2f925f54-a36a-4a68-bf66-c29e1433c79e",
+      "name": "Loop (1 at a time)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [12864, 4192]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an expert business analyst.\n\nWrite a tight company snapshot for: {{$json.company}}.\n\nUse only the info provided in the lead fields. Do not invent.\n\nLead context:\nIndustry focus: {{$json.industry_focus}}\nServices interest: {{$json.services_interest}}\n\nReturn 4 bullets, each max 18 words:\n1) What they likely do\n2) Likely buyer pain\n3) Where AI automation helps\n4) Best entry offer for a 15 min call\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "6ef53370-619e-43a3-97a1-4a2af6f709fe",
+      "name": "OpenAI - Company Research",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [13344, 4192],
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $node[\"Loop (1 at a time)\"].json;\nconst raw = $json;\nconst txt = raw.output_text || raw.text || raw.output || (raw.output?.[0]?.content?.[0]?.text) || (raw.message?.content) || \"\";\n\nreturn [{\n  json: {\n    ...lead,\n    Company_Research: String(txt || \"\").trim(),\n    Status: \"Researched\"\n  }\n}];"
+      },
+      "id": "7441e5d9-6caa-457c-ae58-a87f2afc2dd3",
+      "name": "Set - Research Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [13664, 4192]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Write a short intro email.\n\nSender: {{$node[\"Config\"].json.from_name}}, {{$node[\"Config\"].json.from_company}}\nRecipient: {{$json.name}}, {{$json.role}} at {{$json.company}}\n\nContext:\nIndustry focus: {{$json.industry_focus}}\nServices interest: {{$json.services_interest}}\nCompany research:\n{{$json.Company_Research}}\n\nRules:\nNo hype.\nMax 120 words.\nOne CTA: 15 minute call.\nReturn JSON only:\n{\n  \"emailSubject\": \"\",\n  \"emailBody\": \"\"\n}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "b053e343-5842-41e7-a32f-66b4bc1fd554",
+      "name": "OpenAI - Draft Email",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [13872, 4192],
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json;\nconst txt = raw.output_text || raw.text || raw.output || (raw.output?.[0]?.content?.[0]?.text) || (raw.message?.content) || \"\";\n\nlet parsed;\ntry { parsed = typeof txt === 'string' ? JSON.parse(txt) : txt; } catch (e) { parsed = {}; }\n\nconst emailSubject = parsed.emailSubject || parsed.subject || \"Intro\";\nconst emailBody = parsed.emailBody || parsed.body || \"\";\n\nreturn [{\n  json: {\n    ...$node[\"Set - Research Result\"].json,\n    Status: \"Drafted\",\n    emailSubject,\n    emailBody,\n    draft_json: JSON.stringify({ emailSubject, emailBody })\n  }\n}];"
+      },
+      "id": "ce0d62e9-a5d1-4d5d-a983-ae0b970cdd14",
+      "name": "Normalize Draft Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [14224, 4192]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY",
+          "mode": "list",
+          "cachedResultName": "Fake Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{$json.row_number}}",
+            "Company_Research": "={{$json.Company_Research}}",
+            "Draft_Intro_Email": "={{$json.draft_json}}",
+            "Status": "={{$json.Status}}"
+          },
+          "matchingColumns": ["row_number"],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": { "cellFormat": "USER_ENTERED" }
+      },
+      "id": "d6410e11-14b8-40cb-994a-23af15aa6065",
+      "name": "Sheets - Update Draft + Research",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [14464, 4192],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.email}}",
+        "subject": "={{$json.emailSubject}}",
+        "message": "={{$json.emailBody}}",
+        "options": {}
+      },
+      "id": "677228ef-4328-4a36-b73b-f953fdb9fbf0",
+      "name": "Gmail - Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [14704, 4192],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xuDVkeidMXEmsPib",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date().toISOString();\nreturn [{\n  json: {\n    ...$json,\n    Status: \"Sent\",\n    sent_at: now\n  }\n}];"
+      },
+      "id": "9543df96-25c6-4e7d-9407-f51ea485d287",
+      "name": "Set - Sent Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [14944, 4192]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY",
+          "mode": "list",
+          "cachedResultName": "Fake Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/12lQ7fhanUDKA6HccdsDiNNLrT90Xe9slslOlCgBA5uY/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{$json.row_number}}",
+            "Status": "={{$json.Status}}",
+            "sent_at": "={{$json.sent_at}}"
+          },
+          "matchingColumns": ["row_number"],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": { "cellFormat": "USER_ENTERED" }
+      },
+      "id": "cb4cdc1a-b912-489e-aaf3-032bf4aa6383",
+      "name": "Sheets - Update Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [15184, 4192],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "7e07f95a-aee6-42fa-8762-0aa469c70ba8",
+      "name": "End",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [15424, 4192]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Sheets - Read All Rows", "type": "main", "index": 0 }]]
+    },
+    "Sheets - Read All Rows": {
+      "main": [[{ "node": "IF Status empty", "type": "main", "index": 0 }]]
+    },
+    "IF Status empty": {
+      "main": [
+        [{ "node": "Loop (1 at a time)", "type": "main", "index": 0 }],
+        [{ "node": "End", "type": "main", "index": 0 }]
+      ]
+    },
+    "Loop (1 at a time)": {
+      "main": [
+        [{ "node": "OpenAI - Company Research", "type": "main", "index": 0 }],
+        [{ "node": "End", "type": "main", "index": 0 }]
+      ]
+    },
+    "OpenAI - Company Research": {
+      "main": [[{ "node": "Set - Research Result", "type": "main", "index": 0 }]]
+    },
+    "Set - Research Result": {
+      "main": [[{ "node": "OpenAI - Draft Email", "type": "main", "index": 0 }]]
+    },
+    "OpenAI - Draft Email": {
+      "main": [[{ "node": "Normalize Draft Output", "type": "main", "index": 0 }]]
+    },
+    "Normalize Draft Output": {
+      "main": [[{ "node": "Sheets - Update Draft + Research", "type": "main", "index": 0 }]]
+    },
+    "Sheets - Update Draft + Research": {
+      "main": [[{ "node": "Gmail - Send Email", "type": "main", "index": 0 }]]
+    },
+    "Gmail - Send Email": {
+      "main": [[{ "node": "Set - Sent Status", "type": "main", "index": 0 }]]
+    },
+    "Set - Sent Status": {
+      "main": [[{ "node": "Sheets - Update Sent", "type": "main", "index": 0 }]]
+    },
+    "Sheets - Update Sent": {
+      "main": [[{ "node": "Loop (1 at a time)", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
+

@@ -1,0 +1,132 @@
+{
+  "name": "Notion Create Tool – Clean Starter",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tool-name-assignment",
+              "name": "tool_name",
+              "value": "Test Tool",
+              "type": "string"
+            },
+            {
+              "id": "url-assignment",
+              "name": "url",
+              "value": "https://example.com",
+              "type": "string"
+            },
+            {
+              "id": "segment-assignment",
+              "name": "segment",
+              "value": "AI",
+              "type": "string"
+            },
+            {
+              "id": "geo-assignment",
+              "name": "geo",
+              "value": "UK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-clean-data",
+      "name": "Set Clean Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "2455784d-e310-805d-9383-ed4a2ffbf2cb",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools",
+          "cachedResultUrl": "https://www.notion.so/2455784de310805d9383ed4a2ffbf2cb"
+        },
+        "title": "={{ $json.tool_name }}",
+        "properties": {
+          "URL": {
+            "url": "={{ $json.url }}"
+          },
+          "Segment": {
+            "select": {
+              "name": "={{ $json.segment }}"
+            }
+          },
+          "Geo": {
+            "select": {
+              "name": "={{ $json.geo }}"
+            }
+          }
+        },
+        "options": {}
+      },
+      "id": "notion-create",
+      "name": "Notion Create Tool",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        300
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "uJZ3ccMuVZ3RxvlU",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Clean Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Clean Data": {
+      "main": [
+        [
+          {
+            "node": "Notion Create Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "tags": []
+}
+

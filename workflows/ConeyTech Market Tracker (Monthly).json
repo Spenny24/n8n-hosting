@@ -1,0 +1,540 @@
+{
+  "name": "ConeyTech Market Tracker (Monthly)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "custom",
+              "cronExpression": "0 8 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "2af8dd53-f6db-4ff4-8b50-36ea3e517371",
+      "name": "Monthly Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "timezone-assignment",
+              "name": "timezone",
+              "value": "Europe/London",
+              "type": "string"
+            },
+            {
+              "id": "categories-assignment",
+              "name": "categories",
+              "value": "={{[\n  { name: 'BrokerTech', region: 'UK', timeframe: 'past month', keywords: 'new tool OR product update OR launch OR feature', serpEndpoint: 'https://google.serper.dev/search' },\n  { name: 'EA Tech', region: 'UK', timeframe: 'past month', keywords: 'new tool OR product update OR launch OR feature', serpEndpoint: 'https://google.serper.dev/search' },\n  { name: 'ConveyTech', region: 'UK', timeframe: 'past month', keywords: 'new tool OR product update OR launch OR feature', serpEndpoint: 'https://google.serper.dev/search' },\n  { name: 'LenderTech', region: 'UK', timeframe: 'past month', keywords: 'new tool OR product update OR launch OR feature', serpEndpoint: 'https://google.serper.dev/search' },\n  { name: 'ConeyTech', region: 'Worldwide', timeframe: 'past month', keywords: 'new tool OR product update OR launch OR feature', serpEndpoint: 'https://google.serper.dev/search' }\n]}}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set_config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "splitOutItems",
+        "fieldToSplitOut": "categories",
+        "options": {}
+      },
+      "id": "split_categories",
+      "name": "Split Categories",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 2,
+      "position": [
+        450,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "category-assignment",
+              "name": "category",
+              "value": "={{$json.name}}",
+              "type": "string"
+            },
+            {
+              "id": "region-assignment",
+              "name": "region",
+              "value": "={{$json.region}}",
+              "type": "string"
+            },
+            {
+              "id": "query-assignment",
+              "name": "query",
+              "value": "={{$json.name + ' ' + $json.region + ' ' + $json.keywords + ' ' + $json.timeframe}}",
+              "type": "string"
+            },
+            {
+              "id": "serpendpoint-assignment",
+              "name": "serpEndpoint",
+              "value": "={{$json.serpEndpoint}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare_query",
+      "name": "Prepare Query",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.serpEndpoint}}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "={{$env.SERPER_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{({\n  q: $json.query,\n  gl: ($json.region || '').toLowerCase().includes('uk') ? 'uk' : 'us',\n  hl: 'en',\n  tbs: 'qdr:m',\n  num: 10\n})}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "serper_search",
+      "name": "Serper Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        920,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "category-extract-assignment",
+              "name": "category",
+              "value": "={{$node[\"Prepare Query\"].json.category}}",
+              "type": "string"
+            },
+            {
+              "id": "region-extract-assignment",
+              "name": "region",
+              "value": "={{$node[\"Prepare Query\"].json.region}}",
+              "type": "string"
+            },
+            {
+              "id": "query-extract-assignment",
+              "name": "query",
+              "value": "={{$node[\"Prepare Query\"].json.query}}",
+              "type": "string"
+            },
+            {
+              "id": "organic-assignment",
+              "name": "organic",
+              "value": "={{$json.organic || []}}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract_organic",
+      "name": "Extract Organic Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1140,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{'Bearer ' + $env.OPENAI_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{({\n  model: 'gpt-4o-mini',\n  temperature: 0,\n  response_format: { type: 'json_object' },\n  messages: [\n    { role: 'system', content: 'Extract tools or platform updates as structured JSON only. Output must follow the requested schema.' },\n    { role: 'user', content: (\n      'You are a research analyst creating a monthly ConeyTech tooling tracker.\\n' +\n      'Category: ' + $json.category + '\\n' +\n      'Region: ' + $json.region + '\\n' +\n      'Time window: past month\\n\\n' +\n      'Input (search results):\\n' + JSON.stringify($json.organic).slice(0, 12000) + '\\n\\n' +\n      'Instructions:\\n' +\n      'Identify distinct tools or platforms (launches, feature drops, funding announcements) relevant to ' + $json.category + ' in ' + $json.region + '.\\n' +\n      'Only keep items from the past month.\\n' +\n      'Return JSON with schema {\"tools\":[{\"name\":string,\"category\":string,\"region\":string,\"summary\":string,\"source_url\":string,\"published_at\":string}]}.\\n' +\n      'If no tools are found, return {\"tools\":[]}.'\n    )}\n  ]\n})}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "openai_extract_http",
+      "name": "OpenAI Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tools-assignment",
+              "name": "tools",
+              "value": "={{JSON.parse($json.choices[0].message.content).tools || []}}",
+              "type": "array"
+            },
+            {
+              "id": "category-tools-assignment",
+              "name": "category",
+              "value": "={{$node[\"Extract Organic Results\"].json.category}}",
+              "type": "string"
+            },
+            {
+              "id": "region-tools-assignment",
+              "name": "region",
+              "value": "={{$node[\"Extract Organic Results\"].json.region}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "tools_to_array",
+      "name": "Tools To Array",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "splitOutItems",
+        "fieldToSplitOut": "tools",
+        "options": {}
+      },
+      "id": "split_tools",
+      "name": "Split Tools",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 2,
+      "position": [
+        1860,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name-shape-assignment",
+              "name": "name",
+              "value": "={{$json.name}}",
+              "type": "string"
+            },
+            {
+              "id": "category-shape-assignment",
+              "name": "category",
+              "value": "={{$json.category || $node[\"Tools To Array\"].json.category}}",
+              "type": "string"
+            },
+            {
+              "id": "region-shape-assignment",
+              "name": "region",
+              "value": "={{$json.region || $node[\"Tools To Array\"].json.region}}",
+              "type": "string"
+            },
+            {
+              "id": "summary-shape-assignment",
+              "name": "summary",
+              "value": "={{$json.summary}}",
+              "type": "string"
+            },
+            {
+              "id": "source-url-shape-assignment",
+              "name": "source_url",
+              "value": "={{$json.source_url}}",
+              "type": "string"
+            },
+            {
+              "id": "published-at-shape-assignment",
+              "name": "published_at",
+              "value": "={{$json.published_at}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shape_tool",
+      "name": "Shape Tool Item",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "removeDuplicates",
+        "compare": "allFields",
+        "options": {
+          "caseSensitive": false
+        }
+      },
+      "id": "dedupe_tools",
+      "name": "Deduplicate Tools",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "2455784d-e310-805d-9383-ed4a2ffbf2cb",
+          "mode": "list",
+          "cachedResultName": "ConeyTech Tools",
+          "cachedResultUrl": "https://www.notion.so/2455784de310805d9383ed4a2ffbf2cb"
+        },
+        "title": "={{$json.name}}",
+        "properties": {
+          "Category": {
+            "select": {
+              "name": "={{$json.category}}"
+            }
+          },
+          "Region": {
+            "select": {
+              "name": "={{$json.region}}"
+            }
+          },
+          "Summary": {
+            "richText": {
+              "richText": [
+                {
+                  "text": {
+                    "content": "={{$json.summary || 'No summary provided'}}"
+                  }
+                }
+              ]
+            }
+          },
+          "Source URL": {
+            "url": "={{$json.source_url}}"
+          },
+          "Published At": {
+            "date": {
+              "start": "={{$json.published_at || $now}}"
+            }
+          }
+        },
+        "options": {}
+      },
+      "id": "notion_create",
+      "name": "Notion Create",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2580,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "uJZ3ccMuVZ3RxvlU",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Monthly Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [
+          {
+            "node": "Split Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Categories": {
+      "main": [
+        [
+          {
+            "node": "Prepare Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Query": {
+      "main": [
+        [
+          {
+            "node": "Serper Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Serper Search": {
+      "main": [
+        [
+          {
+            "node": "Extract Organic Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Organic Results": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Extract": {
+      "main": [
+        [
+          {
+            "node": "Tools To Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tools To Array": {
+      "main": [
+        [
+          {
+            "node": "Split Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tools": {
+      "main": [
+        [
+          {
+            "node": "Shape Tool Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Tool Item": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Tools": {
+      "main": [
+        [
+          {
+            "node": "Notion Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/London"
+  },
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

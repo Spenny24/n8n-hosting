@@ -1,0 +1,429 @@
+{
+  "name": "Tool Upsert + Relevance Score",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "tool_name",
+              "name": "tool_name",
+              "value": "Finova",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "https://finova.com",
+              "type": "string"
+            },
+            {
+              "id": "segment",
+              "name": "segment",
+              "value": "Mortgage Technology",
+              "type": "string"
+            },
+            {
+              "id": "geography",
+              "name": "geography",
+              "value": "UK",
+              "type": "string"
+            },
+            {
+              "id": "funding_stage",
+              "name": "funding_stage",
+              "value": "Unknown",
+              "type": "string"
+            },
+            {
+              "id": "summary",
+              "name": "summary",
+              "value": "Provides mortgage origination and servicing capabilities.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prep-tool-data",
+      "name": "Prep Tool Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "YOUR_NOTION_DATABASE_ID_HERE",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "get-tools-db",
+      "name": "Get Tools DB",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "1",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const toolItem = $input.first().json;\nconst dbRows = $('Get Tools DB').all();\n\nif (!toolItem?.tool_name) {\n  throw new Error('Missing tool_name from Prep Tool Data');\n}\n\nconst normalize = (str) => String(str ?? '').trim().toLowerCase();\nconst targetName = normalize(toolItem.tool_name);\n\nconst getToolName = (row) => {\n  const titleProp = row.json?.properties?.['Tool Name']?.title;\n  if (!Array.isArray(titleProp) || titleProp.length === 0) return '';\n  return normalize(titleProp.map(t => t.plain_text).join(''));\n};\n\nconst matchedRow = dbRows.find(row => getToolName(row) === targetName);\n\nreturn {\n  json: {\n    ...toolItem,\n    exists: Boolean(matchedRow),\n    notion_page_id: matchedRow?.json?.id || null\n  }\n};"
+      },
+      "id": "match-tool",
+      "name": "Match Tool",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.exists }}",
+              "operation": "true"
+            }
+          ]
+        }
+      },
+      "id": "tool-exists",
+      "name": "Tool Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.notion_page_id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Tool Name",
+              "type": "title",
+              "title": "={{ $json.tool_name }}"
+            },
+            {
+              "key": "Website",
+              "type": "url",
+              "url": "={{ $json.website }}"
+            },
+            {
+              "key": "Segment",
+              "type": "richText",
+              "richText": "={{ $json.segment }}"
+            },
+            {
+              "key": "Geography",
+              "type": "richText",
+              "richText": "={{ $json.geography }}"
+            },
+            {
+              "key": "Funding Stage",
+              "type": "richText",
+              "richText": "={{ $json.funding_stage }}"
+            },
+            {
+              "key": "Summary",
+              "type": "richText",
+              "richText": "={{ $json.summary }}"
+            }
+          ]
+        }
+      },
+      "id": "update-tool",
+      "name": "Update Tool",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [1320, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "1",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": "YOUR_NOTION_DATABASE_ID_HERE",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Tool Name",
+              "type": "title",
+              "title": "={{ $json.tool_name }}"
+            },
+            {
+              "key": "Website",
+              "type": "url",
+              "url": "={{ $json.website }}"
+            },
+            {
+              "key": "Segment",
+              "type": "richText",
+              "richText": "={{ $json.segment }}"
+            },
+            {
+              "key": "Geography",
+              "type": "richText",
+              "richText": "={{ $json.geography }}"
+            },
+            {
+              "key": "Funding Stage",
+              "type": "richText",
+              "richText": "={{ $json.funding_stage }}"
+            },
+            {
+              "key": "Summary",
+              "type": "richText",
+              "richText": "={{ $json.summary }}"
+            }
+          ]
+        }
+      },
+      "id": "create-tool",
+      "name": "Create Tool",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [1320, 400],
+      "credentials": {
+        "notionApi": {
+          "id": "1",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const pageId = $json.id || $json.notion_page_id;\n\nif (!pageId) {\n  throw new Error('Missing Notion page ID after upsert');\n}\n\nreturn {\n  json: {\n    ...$json,\n    notion_page_id: pageId\n  }\n};"
+      },
+      "id": "normalize-page-id",
+      "name": "Normalize Page ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "operation": "message",
+        "resource": "text",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Return only one integer from 1 to 10. No explanations, no other text."
+            },
+            {
+              "role": "user",
+              "content": "=Score this tool's relevance to mortgage tech landscape:\n\nTool: {{ $json.tool_name }}\nSegment: {{ $json.segment }}\nGeography: {{ $json.geography }}\nSummary: {{ $json.summary }}\n\nReturn only a single integer 1-10."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "score-relevance",
+      "name": "Score Relevance",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [1760, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.message?.content || $json.choices?.[0]?.message?.content || '';\nconst match = String(content).match(/\\b(10|[1-9])\\b/);\nconst score = match ? Number(match[1]) : 0;\n\nreturn {\n  json: {\n    ...($('Normalize Page ID').first().json),\n    relevance_score: score\n  }\n};"
+      },
+      "id": "extract-score",
+      "name": "Extract Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.notion_page_id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Relevance Score",
+              "type": "number",
+              "number": "={{ $json.relevance_score }}"
+            }
+          ]
+        }
+      },
+      "id": "save-score",
+      "name": "Save Relevance Score",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [2200, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "1",
+          "name": "Notion API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prep Tool Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Tool Data": {
+      "main": [
+        [
+          {
+            "node": "Get Tools DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tools DB": {
+      "main": [
+        [
+          {
+            "node": "Match Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Tool": {
+      "main": [
+        [
+          {
+            "node": "Tool Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update Tool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Tool": {
+      "main": [
+        [
+          {
+            "node": "Normalize Page ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Tool": {
+      "main": [
+        [
+          {
+            "node": "Normalize Page ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Page ID": {
+      "main": [
+        [
+          {
+            "node": "Score Relevance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Relevance": {
+      "main": [
+        [
+          {
+            "node": "Extract Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Score": {
+      "main": [
+        [
+          {
+            "node": "Save Relevance Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-12-17T00:00:00.000Z",
+  "versionId": "1"
+}
