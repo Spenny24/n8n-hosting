@@ -1,36 +1,145 @@
-# This is a basic workflow to help you get started with Actions
+name: CI Validation
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  validate-yaml:
+    name: Validate YAML Syntax
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Install yamllint
+        run: pip install yamllint
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Lint all YAML files
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" \
+            docker-compose/**/*.yml \
+            docker-caddy/*.yml \
+            kubernetes/*.yaml \
+            .github/workflows/*.yml
+
+  validate-docker-compose:
+    name: Validate Docker Compose Files
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compose-dir:
+          - docker-compose/subfolderWithSSL
+          - docker-compose/withPostgres
+          - docker-compose/withPostgresAndWorker
+          - docker-caddy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate ${{ matrix.compose-dir }}
+        working-directory: ${{ matrix.compose-dir }}
+        run: |
+          # Create a test .env from template if it doesn't exist
+          if [ ! -f .env ]; then
+            echo "No .env file found in ${{ matrix.compose-dir }}"
+            exit 1
+          fi
+
+          # Validate docker-compose syntax
+          docker-compose config > /dev/null
+          echo "✓ Docker Compose validation passed for ${{ matrix.compose-dir }}"
+
+  validate-kubernetes:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Validate Kubernetes YAML files
+        run: |
+          for file in kubernetes/*.yaml; do
+            echo "Validating $file..."
+            kubectl apply --dry-run=client -f "$file" > /dev/null || exit 1
+          done
+          echo "✓ All Kubernetes manifests are valid"
+
+  security-checks:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for default passwords in .env files
+        run: |
+          echo "Checking for insecure default passwords..."
+
+          # Check if any .env files still have 'change' placeholders
+          if grep -r "changeUser\|changePassword" docker-compose/**/.env docker-caddy/.env 2>/dev/null; then
+            echo "⚠️  Warning: Found placeholder passwords in .env files"
+            echo "   These are template files and should be updated before deployment"
+          else
+            echo "✓ No placeholder passwords found"
+          fi
+
+      - name: Verify no sensitive files are committed
+        run: |
+          echo "Checking for accidentally committed sensitive files..."
+
+          # Check for common sensitive file patterns
+          if find . -name "*.pem" -o -name "*.key" -o -name "*.crt" -o -name "*.p12" | grep -v ".git"; then
+            echo "❌ Error: Found potentially sensitive certificate/key files"
+            exit 1
+          fi
+
+          echo "✓ No sensitive files detected"
+
+  shellcheck:
+    name: Lint Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on shell scripts
+        run: |
+          if find . -name "*.sh" -type f | grep -v ".git"; then
+            find . -name "*.sh" -type f -exec shellcheck {} + || exit 1
+            echo "✓ All shell scripts passed shellcheck"
+          else
+            echo "No shell scripts found to check"
+          fi
+
+  check-documentation:
+    name: Check Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify README files exist
+        run: |
+          echo "Checking for documentation..."
+
+          # Check main README
+          if [ ! -f README.md ]; then
+            echo "❌ Error: Missing main README.md"
+            exit 1
+          fi
+
+          # Check for READMEs in example directories
+          for dir in docker-compose/*/; do
+            if [ ! -f "${dir}README.md" ]; then
+              echo "⚠️  Warning: Missing README.md in $dir"
+            fi
+          done
+
+          echo "✓ Documentation check complete"
