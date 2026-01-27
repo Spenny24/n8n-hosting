@@ -1,0 +1,444 @@
+{
+  "name": "Viral Instagram Reels",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 9 * * MON-FRI"
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "search",
+        "operation": "search",
+        "application": "apify/instagram-profiles",
+        "jsonParameters": true,
+        "options": {
+          "additionalFields": {
+            "limit": 100
+          }
+        },
+        "filtersJson": "={\"query\": \"entrepreneurship\"}"
+      },
+      "id": "2",
+      "name": "Search Creators",
+      "type": "n8n-nodes-base.apify",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        120
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_APIFY\"] }}",
+          "name": "Apify"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeActor",
+        "actor": "apify/instagram-post-scraper",
+        "jsonParameters": true,
+        "options": {
+          "additionalFields": {
+            "resultsLimit": 200
+          }
+        },
+        "inputJson": "={\n  \"usernames\": $json.data.map(item => item.username)\n}"
+      },
+      "id": "3",
+      "name": "Long Form Scraper",
+      "type": "n8n-nodes-base.apify",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        120
+      ],
+      "credentials": {
+        "apifyApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_APIFY\"] }}",
+          "name": "Apify"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "itemList",
+        "operation": "aggregate",
+        "options": {
+          "filter": {
+            "conditions": [
+              {
+                "key": "playCount",
+                "operation": "greaterEqual",
+                "value": 500000
+              }
+            ]
+          }
+        }
+      },
+      "id": "4",
+      "name": "Highly Viewed Filter",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "fields",
+              "value": "={{ ['id', 'caption', 'videoUrl', 'playCount'] }}"
+            }
+          ]
+        }
+      },
+      "id": "5",
+      "name": "Save Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        220,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "itemList",
+        "operation": "aggregate",
+        "options": {
+          "sort": {
+            "key": "playCount",
+            "order": "desc"
+          }
+        }
+      },
+      "id": "6",
+      "name": "Sort",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        480,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5
+      },
+      "id": "7",
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        720,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"REELS_GENERATOR_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"clips\": $json.videoUrl,\n  \"caption\": $json.caption,\n  \"ratio\": \"9:16\"\n}"
+      },
+      "id": "8",
+      "name": "Generate Reels",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        960,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{ $env['IG_ACCOUNT_ID'] }}/media",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.data.renderedUrl,\n  \"caption\": $json.caption\n}"
+      },
+      "id": "9",
+      "name": "Upload to Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1200,
+        120
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "10",
+      "name": "Execute Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "ReelsQueue!A:E",
+        "returnAll": false,
+        "options": {
+          "limit": 10
+        }
+      },
+      "id": "11",
+      "name": "Import Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -600,
+        440
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt",
+              "value": "={{ 'Create an Instagram Reels script about ' + $json.topic }}"
+            }
+          ]
+        }
+      },
+      "id": "12",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"REELS_GENERATOR_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"prompt\": $json.prompt,\n  \"duration\": $json.duration ?? 60\n}"
+      },
+      "id": "13",
+      "name": "Create Reels",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        -80,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "binaryData": false,
+        "fileContent": "={{ $json.data.renderedUrl }}",
+        "parentId": "={{ $env[\"GOOGLE_DRIVE_FOLDER_REELS\"] }}"
+      },
+      "id": "14",
+      "name": "Save Video",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 2,
+      "position": [
+        180,
+        440
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE_DRIVE\"] }}",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{ $env['IG_ACCOUNT_ID'] }}/media",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.data.renderedUrl,\n  \"caption\": $json.caption ?? 'New reel'\n}"
+      },
+      "id": "15",
+      "name": "Upload to Instagram (Manual)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        440,
+        440
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search Creators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Creators": {
+      "main": [
+        [
+          {
+            "node": "Long Form Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Long Form Scraper": {
+      "main": [
+        [
+          {
+            "node": "Highly Viewed Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Highly Viewed Filter": {
+      "main": [
+        [
+          {
+            "node": "Save Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Fields": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Generate Reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Reels": {
+      "main": [
+        [
+          {
+            "node": "Upload to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Trigger": {
+      "main": [
+        [
+          {
+            "node": "Import Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Set Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Prompt": {
+      "main": [
+        [
+          {
+            "node": "Create Reels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Reels": {
+      "main": [
+        [
+          {
+            "node": "Save Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Video": {
+      "main": [
+        [
+          {
+            "node": "Upload to Instagram (Manual)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "instagram-reels-001",
+  "settings": {
+    "timezone": "America/New_York"
+  }
+}

@@ -1,0 +1,438 @@
+{
+  "name": "Faceless Video AI",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "0 7 * * *"
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "agentId": "={{ $env[\"SCRIPT_AGENT_ID\"] }}",
+        "input": "={{ { topic: $json.topic ?? 'daily AI news', duration: 60 } }}"
+      },
+      "id": "2",
+      "name": "AI Agent (script writer)",
+      "type": "n8n-nodes-base.promptNode",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Structure faceless scripts with sections intro, bullets, outro."
+          },
+          {
+            "role": "user",
+            "content": "={{ $json.output }}"
+          }
+        ],
+        "responseFormat": "json"
+      },
+      "id": "3",
+      "name": "Generate Script",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        -320,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_OPENAI\"] }}",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": "={\n  \"type\": \"object\",\n  \"properties\": {\n    \"intro\": {\"type\": \"string\"},\n    \"bullets\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}},\n    \"outro\": {\"type\": \"string\"}\n  },\n  \"required\": [\"intro\", \"bullets\", \"outro\"]\n}"
+      },
+      "id": "4",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.jsonSchema",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"FACELESS_VIDEO_API\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"script\": {\n    \"intro\": $json.intro,\n    \"bullets\": $json.bullets,\n    \"outro\": $json.outro\n  },\n  \"style\": \"veo\",\n  \"duration\": 60\n}"
+      },
+      "id": "5",
+      "name": "Create Faceless Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        240,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 45,
+        "unit": "seconds"
+      },
+      "id": "6",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.status_url }}",
+        "method": "GET"
+      },
+      "id": "7",
+      "name": "Get Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { videoUrl: $json.data.assets.video.url, caption: $json.data.metadata.caption ?? '' } }];"
+      },
+      "id": "8",
+      "name": "Prepare Publish Payload",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "splitInBatches",
+        "options": {
+          "batchSize": 1
+        }
+      },
+      "id": "9",
+      "name": "Publish to Social Media",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"INSTAGRAM_PUBLISH_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"caption\": $json.caption\n}"
+      },
+      "id": "10",
+      "name": "Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1560,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"TIKTOK_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"description\": $json.caption\n}"
+      },
+      "id": "11",
+      "name": "TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1560,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"YOUTUBE_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"file_url\": $json.videoUrl,\n  \"title\": $json.caption\n}"
+      },
+      "id": "12",
+      "name": "YouTube",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1560,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"THREADS_PUBLISH_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"text\": $json.caption\n}"
+      },
+      "id": "13",
+      "name": "Threads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1560,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"FACEBOOK_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"description\": $json.caption\n}"
+      },
+      "id": "14",
+      "name": "Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1820,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"PINTEREST_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"title\": $json.caption\n}"
+      },
+      "id": "15",
+      "name": "Pinterest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1820,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"X_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"text\": $json.caption\n}"
+      },
+      "id": "16",
+      "name": "X (Twitter)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1820,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"LINKEDIN_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"text\": $json.caption\n}"
+      },
+      "id": "17",
+      "name": "LinkedIn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1820,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"BLUESKY_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"video_url\": $json.videoUrl,\n  \"text\": $json.caption\n}"
+      },
+      "id": "18",
+      "name": "Bluesky",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1820,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (script writer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (script writer)": {
+      "main": [
+        [
+          {
+            "node": "Generate Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Script": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output": {
+      "main": [
+        [
+          {
+            "node": "Create Faceless Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Faceless Video": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Result": {
+      "main": [
+        [
+          {
+            "node": "Prepare Publish Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Publish Payload": {
+      "main": [
+        [
+          {
+            "node": "Publish to Social Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Social Media": {
+      "main": [
+        [
+          {
+            "node": "Instagram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TikTok",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "YouTube",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Threads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pinterest",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "X (Twitter)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LinkedIn",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bluesky",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "faceless-video-ai-001",
+  "settings": {
+    "timezone": "America/New_York"
+  }
+}

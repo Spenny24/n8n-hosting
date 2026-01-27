@@ -1,0 +1,381 @@
+{
+  "name": "Generate Viral AI Video using Veo3",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Execute Workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "lookup",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "VeoPrompts!A:G",
+        "returnAll": false,
+        "options": {
+          "limit": 1
+        },
+        "filters": {
+          "where": [
+            {
+              "column": "status",
+              "condition": "equal",
+              "value": "queued"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Google Sheets (read video data)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -320,
+        240
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "agentId": "={{ $env[\"PROMPT_AGENT_ID\"] }}",
+        "input": "={{ { topic: $json.topic, audience: $json.audience, hook: $json.hook } }}"
+      },
+      "id": "3",
+      "name": "Prompt Agent",
+      "type": "n8n-nodes-base.promptNode",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You write viral short-form video scripts. Return JSON with keys: intro, body, outro."
+          },
+          {
+            "role": "user",
+            "content": "={{ $json.output }}"
+          }
+        ],
+        "responseFormat": "json"
+      },
+      "id": "4",
+      "name": "OpenAI Chat Model",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        220,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_OPENAI\"] }}",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": "={\n  \"type\": \"object\",\n  \"properties\": {\n    \"intro\": {\n      \"type\": \"string\"\n    },\n    \"body\": {\n      \"type\": \"string\"\n    },\n    \"outro\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\"intro\", \"body\", \"outro\"]\n}"
+      },
+      "id": "5",
+      "name": "Structured Output Parser",
+      "type": "n8n-nodes-base.jsonSchema",
+      "typeVersion": 1,
+      "position": [
+        500,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"VEO3_BASE_URL\"] + '/videos' }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "sendHeaders": true,
+        "headerParametersJson": "={\"Authorization\": \"Bearer ${$env['VEO3_API_KEY']}\"}",
+        "bodyParametersJson": "={\n  \"script\": $json.body,\n  \"audio\": {\n    \"voice\": $json.voice ?? 'alloy'\n  },\n  \"metadata\": {\n    \"sheet_row\": $json.id\n  }\n}"
+      },
+      "id": "6",
+      "name": "Generate Video (Veo3 API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 30,
+        "unit": "seconds"
+      },
+      "id": "7",
+      "name": "Wait Before Next Poll",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"VEO3_BASE_URL\"] + '/videos/' + $json.data.id }}",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParametersJson": "={\"Authorization\": \"Bearer ${$env['VEO3_API_KEY']}\"}"
+      },
+      "id": "8",
+      "name": "Check Video Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1260,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data.status }}",
+              "operation": "notEqual",
+              "value2": "completed"
+            }
+          ]
+        }
+      },
+      "id": "9",
+      "name": "Is Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 20,
+        "unit": "seconds"
+      },
+      "id": "10",
+      "name": "Wait Before Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "download_url",
+              "value": "={{ $json.data.assets.video.url }}"
+            }
+          ]
+        }
+      },
+      "id": "11",
+      "name": "Get Download URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "VeoPrompts!A:G",
+        "updateAllMatches": true,
+        "key": "id",
+        "fieldsToUpdate": {
+          "string": [
+            {
+              "name": "status",
+              "value": "rendered"
+            },
+            {
+              "name": "download_url",
+              "value": "={{ $json.download_url }}"
+            }
+          ]
+        }
+      },
+      "id": "12",
+      "name": "Update Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1980,
+        380
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets (read video data)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets (read video data)": {
+      "main": [
+        [
+          {
+            "node": "Prompt Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Agent": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Chat Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "main": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "main": [
+        [
+          {
+            "node": "Generate Video (Veo3 API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Video (Veo3 API)": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Next Poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Next Poll": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Video Status": {
+      "main": [
+        [
+          {
+            "node": "Is Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Completed?": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Download URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Retry": {
+      "main": [
+        [
+          {
+            "node": "Check Video Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Download URL": {
+      "main": [
+        [
+          {
+            "node": "Update Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "veo3-generate-001",
+  "settings": {
+    "timezone": "America/New_York"
+  }
+}
