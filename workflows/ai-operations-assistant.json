@@ -1,0 +1,964 @@
+{
+  "name": "AI Operations Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyDay",
+              "hour": 6,
+              "minute": 0
+            }
+          ]
+        }
+      },
+      "id": "c80fa236-37bd-41fe-892e-22946d1c6301",
+      "name": "Daily Kickoff",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "agentPersona",
+              "value": "You are an AI operations chief of staff responsible for keeping the executive team informed, triaging inbound leads, and managing outbound comms."
+            },
+            {
+              "name": "reportingEmail",
+              "value": "{{ $env.AI_EMPLOYEE_REPORT_RECIPIENT || 'ops@example.com' }}"
+            }
+          ],
+          "json": [
+            {
+              "name": "objectives",
+              "value": "={\"daily\":[\"Summarize unread Gmail threads tagged #Priority\",\"Reconcile Google Calendar availability\",\"Process LinkedIn and Twitter DMs\",\"Sync deal artifacts to Google Drive\",\"Draft social posts from approved talking points\"]}"
+            }
+          ]
+        },
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "id": "4f9936b9-c511-4088-89b2-f21990d13401",
+      "name": "Set Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -1000,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = items[0]?.json || {};\nconst store = this.getWorkflowStaticData('global');\nstore.agentPersona = data.agentPersona;\nstore.objectives = data.objectives;\nstore.reportingEmail = data.reportingEmail;\nreturn items;"
+      },
+      "id": "ac941dc3-0baf-45e4-ac89-17f1764d153b",
+      "name": "Function - Cache Persona",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "systemMessage": "Plan the next block of work for our AI employee using the provided context. Output valid JSON with a tasks array where each task includes: id, domain (calendar|drive|gmail|linkedin|twitter|utility), action, priority (P0-P2), summary, metadata. Include only actionable items we should execute via automation.",
+        "messages": [
+          {
+            "message": "={{$json}}",
+            "sender": "user"
+          }
+        ],
+        "additionalFields": {
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "071d3464-f62e-4014-b172-69904fd24fa5",
+      "name": "OpenAI - Plan Day",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 3,
+      "position": [
+        -780,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const raw = items[0]?.json?.choices?.[0]?.message?.content ?? '{}';\nlet payload;\ntry {\n  payload = typeof raw === 'string' ? JSON.parse(raw) : raw;\n} catch (error) {\n  throw new Error('Unable to parse agent plan JSON: ' + error.message + ' -> ' + raw);\n}\nconst tasks = payload.tasks ?? [];\nreturn tasks.map(task => ({ json: { task } }));"
+      },
+      "id": "bd672367-98a3-4b76-a81d-14daddf7a653",
+      "name": "Function - Expand Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const map = new Map();\nfor (const item of items) {\n  const task = item.json.task;\n  const domain = (task.domain || 'utility').toLowerCase();\n  if (!map.has(domain)) {\n    map.set(domain, []);\n  }\n  map.get(domain).push(task);\n}\nconst globalData = this.getWorkflowStaticData('global');\nglobalData.taskMap = {};\nglobalData.results = [];\nfor (const [domain, list] of map.entries()) {\n  globalData.taskMap[domain] = list;\n}\nconst domains = ['calendar','drive','gmail','linkedin','twitter','utility'];\nreturn domains.map(domain => ({ json: { domain, tasks: globalData.taskMap[domain] || [] } }));"
+      },
+      "id": "d3d135f1-4ca4-4e82-a97e-42c608a2a0db",
+      "name": "Function - Cache Task Map",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "propertyName": "domain",
+        "dataType": "string",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "calendar"
+          },
+          {
+            "operation": "equal",
+            "value": "drive"
+          },
+          {
+            "operation": "equal",
+            "value": "gmail"
+          },
+          {
+            "operation": "equal",
+            "value": "linkedin"
+          },
+          {
+            "operation": "equal",
+            "value": "twitter"
+          }
+        ]
+      },
+      "id": "5d49b11a-87ad-43f4-a1d7-f0eddcb0a324",
+      "name": "Switch - Route Domain",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "workflowName": "Google Calendar MCP Tools",
+        "options": {
+          "waitForResponse": true,
+          "noWebhookResponse": true
+        }
+      },
+      "id": "b5a61234-749b-4149-8e1f-502e938181b8",
+      "name": "Run Calendar Tools",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "workflowName": "Google Drive MCP Tools",
+        "options": {
+          "waitForResponse": true,
+          "noWebhookResponse": true
+        }
+      },
+      "id": "18393627-baec-40b1-b774-84eb04da5b73",
+      "name": "Run Drive Tools",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "workflowName": "Google Mail MCP Tools",
+        "options": {
+          "waitForResponse": true,
+          "noWebhookResponse": true
+        }
+      },
+      "id": "f1e33893-ab13-47be-a294-99c90e51d99a",
+      "name": "Run Gmail Tools",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowName": "LinkedIn MCP Tools",
+        "options": {
+          "waitForResponse": true,
+          "noWebhookResponse": true
+        }
+      },
+      "id": "1d4739eb-ac4b-4551-9fe4-1937e3c726fd",
+      "name": "Run LinkedIn Tools",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        160,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "workflowName": "Twitter MCP Tools",
+        "options": {
+          "waitForResponse": true,
+          "noWebhookResponse": true
+        }
+      },
+      "id": "70c8f7b7-d89e-4fe0-b4e4-cc724d01b346",
+      "name": "Run Twitter Tools",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        160,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "workflowName": "Utility MCP Tools",
+        "options": {
+          "waitForResponse": true,
+          "noWebhookResponse": true
+        }
+      },
+      "id": "4cb5532a-6798-4063-871c-7773a6d8ea56",
+      "name": "Run Utility Tools",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        160,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nconst results = globalData.results || [];\nreturn [{ json: { results } }];"
+      },
+      "id": "f8c6c19c-3342-4a10-a55a-673bc6f71c74",
+      "name": "Function - Gather Results",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nconst results = items[0].json.results || [];\nconst objectives = Array.isArray(globalData.objectives?.daily) ? globalData.objectives.daily : [];\nconst persona = globalData.agentPersona || 'an AI operations chief of staff';\nreturn [{ json: { summaryPrompt: `You are ${persona}. Draft a status update that summarizes these domain results (${JSON.stringify(results)}). Highlight blockers, upcoming deadlines, and next actions. Objectives: ${objectives.join(', ')}` } }];"
+      },
+      "id": "ecac059f-5336-482f-aad7-a8c7d32d2612",
+      "name": "Function - Build Summary Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "systemMessage": "Write crisp async status updates with bullet lists and callouts for blockers.",
+        "messages": [
+          {
+            "message": "={{$json.summaryPrompt}}",
+            "sender": "user"
+          }
+        ]
+      },
+      "id": "3d04fdc5-3df4-4549-8016-95a5fc860ecf",
+      "name": "OpenAI - Draft Executive Update",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 3,
+      "position": [
+        1860,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "additionalFields": {
+          "subject": "AI Employee Daily Update",
+          "toList": "={{$workflow.staticData.global.reportingEmail || $env.AI_EMPLOYEE_REPORT_RECIPIENT}}",
+          "text": "={{$json.body || $json}}"
+        },
+        "messageBody": "={{$json.choices[0].message.content}}"
+      },
+      "id": "9db691d2-ea19-4c99-867e-f6ffe0a08898",
+      "name": "Gmail - Send Update",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst sourceList = store.taskMap?.calendar || [];\nreturn items.map((item, index) => {\n  const paired = item.pairedItem?.item ?? index;\n  const source = sourceList[paired] || item.json.task || {};\n  if (item.json.result && item.json.domain) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json.result } };\n  }\n  if (item.json.domain && item.json.result === undefined && !sourceList.length) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json } };\n  }\n  return { json: { domain: source.domain || 'calendar', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "0607fffc-e50c-4b21-80fc-28884aecf8be",
+      "name": "Function - Normalize Calendar Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        360,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nif (!globalData.results) globalData.results = [];\nfor (const item of items) {\n  const payload = item.json || {};\n  if (payload.domain) {\n    globalData.results.push(payload);\n  }\n}\nreturn [{ json: { domain: 'calendar', processed: items.length } }];"
+      },
+      "id": "2d7a7040-7ba7-4e2b-93ad-0d4f77a2e8ac",
+      "name": "Function - Collect Calendar Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        580,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst sourceList = store.taskMap?.drive || [];\nreturn items.map((item, index) => {\n  const paired = item.pairedItem?.item ?? index;\n  const source = sourceList[paired] || item.json.task || {};\n  if (item.json.result && item.json.domain) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json.result } };\n  }\n  if (item.json.domain && item.json.result === undefined && !sourceList.length) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json } };\n  }\n  return { json: { domain: source.domain || 'drive', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "ae3efc24-8a61-453c-976e-33a5423d163c",
+      "name": "Function - Normalize Drive Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        360,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nif (!globalData.results) globalData.results = [];\nfor (const item of items) {\n  const payload = item.json || {};\n  if (payload.domain) {\n    globalData.results.push(payload);\n  }\n}\nreturn [{ json: { domain: 'drive', processed: items.length } }];"
+      },
+      "id": "18f94fe5-976a-4bcf-9980-e638c4bd9531",
+      "name": "Function - Collect Drive Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        580,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst sourceList = store.taskMap?.gmail || [];\nreturn items.map((item, index) => {\n  const paired = item.pairedItem?.item ?? index;\n  const source = sourceList[paired] || item.json.task || {};\n  if (item.json.result && item.json.domain) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json.result } };\n  }\n  if (item.json.domain && item.json.result === undefined && !sourceList.length) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json } };\n  }\n  return { json: { domain: source.domain || 'gmail', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "ca63f194-53e5-4482-9f81-eced76914bd5",
+      "name": "Function - Normalize Gmail Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nif (!globalData.results) globalData.results = [];\nfor (const item of items) {\n  const payload = item.json || {};\n  if (payload.domain) {\n    globalData.results.push(payload);\n  }\n}\nreturn [{ json: { domain: 'gmail', processed: items.length } }];"
+      },
+      "id": "3007dddd-c266-497b-a70d-8470ca3b9bc8",
+      "name": "Function - Collect Gmail Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        580,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst sourceList = store.taskMap?.linkedin || [];\nreturn items.map((item, index) => {\n  const paired = item.pairedItem?.item ?? index;\n  const source = sourceList[paired] || item.json.task || {};\n  if (item.json.result && item.json.domain) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json.result } };\n  }\n  if (item.json.domain && item.json.result === undefined && !sourceList.length) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json } };\n  }\n  return { json: { domain: source.domain || 'linkedin', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "5dea58bb-8f6e-4faa-8af3-272524e3de30",
+      "name": "Function - Normalize Linkedin Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        360,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nif (!globalData.results) globalData.results = [];\nfor (const item of items) {\n  const payload = item.json || {};\n  if (payload.domain) {\n    globalData.results.push(payload);\n  }\n}\nreturn [{ json: { domain: 'linkedin', processed: items.length } }];"
+      },
+      "id": "6e598797-346b-44f3-8d08-e8828fad6fce",
+      "name": "Function - Collect Linkedin Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        580,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst sourceList = store.taskMap?.twitter || [];\nreturn items.map((item, index) => {\n  const paired = item.pairedItem?.item ?? index;\n  const source = sourceList[paired] || item.json.task || {};\n  if (item.json.result && item.json.domain) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json.result } };\n  }\n  if (item.json.domain && item.json.result === undefined && !sourceList.length) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json } };\n  }\n  return { json: { domain: source.domain || 'twitter', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "b2867524-c8a6-4044-9279-108f1f899dd2",
+      "name": "Function - Normalize Twitter Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        360,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nif (!globalData.results) globalData.results = [];\nfor (const item of items) {\n  const payload = item.json || {};\n  if (payload.domain) {\n    globalData.results.push(payload);\n  }\n}\nreturn [{ json: { domain: 'twitter', processed: items.length } }];"
+      },
+      "id": "8ce89204-00f7-469a-8ce6-743f7942abde",
+      "name": "Function - Collect Twitter Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        580,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nconst sourceList = store.taskMap?.utility || [];\nreturn items.map((item, index) => {\n  const paired = item.pairedItem?.item ?? index;\n  const source = sourceList[paired] || item.json.task || {};\n  if (item.json.result && item.json.domain) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json.result } };\n  }\n  if (item.json.domain && item.json.result === undefined && !sourceList.length) {\n    return { json: { domain: item.json.domain, action: item.json.action, task: item.json.task, result: item.json } };\n  }\n  return { json: { domain: source.domain || 'utility', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "92386737-b04f-4705-9ad6-b6621129e3e8",
+      "name": "Function - Normalize Utility Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        360,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const globalData = this.getWorkflowStaticData('global');\nif (!globalData.results) globalData.results = [];\nfor (const item of items) {\n  const payload = item.json || {};\n  if (payload.domain) {\n    globalData.results.push(payload);\n  }\n}\nreturn [{ json: { domain: 'utility', processed: items.length } }];"
+      },
+      "id": "e7af54b4-7457-47af-bc51-10eb28f59889",
+      "name": "Function - Collect Utility Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        580,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "passThrough": "input1",
+        "join": "wait"
+      },
+      "id": "84c15e34-1eb2-4000-ac02-01f567eacfe1",
+      "name": "Merge Calendar & Drive",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        620,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "passThrough": "input1",
+        "join": "wait"
+      },
+      "id": "3893464a-57c3-4bdd-80c7-a44862c8d2a9",
+      "name": "Merge CD & Gmail",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "passThrough": "input1",
+        "join": "wait"
+      },
+      "id": "4feb4757-a0fb-467b-b054-88f6c55f40a4",
+      "name": "Merge CDG & LinkedIn",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "passThrough": "input1",
+        "join": "wait"
+      },
+      "id": "24d63b6e-b5f4-4771-ae37-62920435445a",
+      "name": "Merge CDGL & Twitter",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "passThrough": "input1",
+        "join": "wait"
+      },
+      "id": "e94846f3-58d3-4a2f-ab08-215066b15e04",
+      "name": "Merge All Tools",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Kickoff": {
+      "main": [
+        [
+          {
+            "node": "Set Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Context": {
+      "main": [
+        [
+          {
+            "node": "Function - Cache Persona",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Plan Day": {
+      "main": [
+        [
+          {
+            "node": "Function - Expand Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Expand Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Cache Task Map",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route Domain": {
+      "main": [
+        [
+          {
+            "node": "Run Calendar Tools",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run Drive Tools",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run Gmail Tools",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run LinkedIn Tools",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run Twitter Tools",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run Utility Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Calendar Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Calendar Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Drive Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Drive Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Gmail Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Gmail Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run LinkedIn Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Linkedin Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Twitter Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Twitter Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Utility Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Normalize Utility Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Gather Results": {
+      "main": [
+        [
+          {
+            "node": "Function - Build Summary Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Build Summary Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Draft Executive Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Draft Executive Update": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Normalize Calendar Result": {
+      "main": [
+        [
+          {
+            "node": "Function - Collect Calendar Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Normalize Drive Result": {
+      "main": [
+        [
+          {
+            "node": "Function - Collect Drive Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Normalize Gmail Result": {
+      "main": [
+        [
+          {
+            "node": "Function - Collect Gmail Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Normalize Linkedin Result": {
+      "main": [
+        [
+          {
+            "node": "Function - Collect Linkedin Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Normalize Twitter Result": {
+      "main": [
+        [
+          {
+            "node": "Function - Collect Twitter Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Normalize Utility Result": {
+      "main": [
+        [
+          {
+            "node": "Function - Collect Utility Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Calendar & Drive": {
+      "main": [
+        [
+          {
+            "node": "Merge CD & Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge CD & Gmail": {
+      "main": [
+        [
+          {
+            "node": "Merge CDG & LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge CDG & LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Merge CDGL & Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge CDGL & Twitter": {
+      "main": [
+        [
+          {
+            "node": "Merge All Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Tools": {
+      "main": [
+        [
+          {
+            "node": "Function - Gather Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Collect Calendar Result": {
+      "main": [
+        [
+          {
+            "node": "Merge Calendar & Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Collect Drive Result": {
+      "main": [
+        [
+          {
+            "node": "Merge Calendar & Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Collect Gmail Result": {
+      "main": [
+        [
+          {
+            "node": "Merge CD & Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Collect Linkedin Result": {
+      "main": [
+        [
+          {
+            "node": "Merge CDG & LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Collect Twitter Result": {
+      "main": [
+        [
+          {
+            "node": "Merge CDGL & Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Collect Utility Result": {
+      "main": [
+        [
+          {
+            "node": "Merge All Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Cache Persona": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Plan Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Cache Task Map": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route Domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

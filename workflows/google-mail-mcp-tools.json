@@ -1,0 +1,387 @@
+{
+  "name": "Google Mail MCP Tools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1af896ee-f12e-43c6-83f4-cc6ab9d15532",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.workflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = items[0]?.json || {};\nconst tasks = Array.isArray(input.tasks) ? input.tasks : [];\nconst store = this.getWorkflowStaticData('global');\nstore.tasks = tasks;\nreturn [{ json: { domain: input.domain || 'gmail', tasks } }];"
+      },
+      "id": "a3099c5b-442b-44e5-8570-e562de2a1eef",
+      "name": "Function - Extract Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.tasks.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "b12b3124-567f-4abc-b3d6-0e4097dc7454",
+      "name": "IF - Has Tasks",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const tasks = items[0].json.tasks || [];\nreturn tasks.map(task => ({ json: task }));"
+      },
+      "id": "162b2e1d-92e3-4c4e-9aaf-567b08779eae",
+      "name": "Function - Fan Out",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "propertyName": "action",
+        "dataType": "string",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "summarize_thread"
+          },
+          {
+            "operation": "equal",
+            "value": "reply_to_thread"
+          },
+          {
+            "operation": "equal",
+            "value": "draft_email"
+          },
+          {
+            "operation": "equal",
+            "value": "label_thread"
+          }
+        ]
+      },
+      "id": "4086c754-71be-4922-8cbe-bb400c472ced",
+      "name": "Switch - Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "get",
+        "messageId": "={{$json.metadata.messageId}}",
+        "additionalFields": {
+          "format": "full"
+        }
+      },
+      "id": "7d61f02b-c44c-44e4-a60a-edcd77c19201",
+      "name": "Gmail - Fetch Thread",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "reply",
+        "messageId": "={{$json.metadata.messageId}}",
+        "additionalFields": {
+          "text": "={{$json.metadata.body}}",
+          "subject": "={{$json.metadata.subject}}"
+        }
+      },
+      "id": "c33b5e09-03fe-444d-8c78-be7c1b294232",
+      "name": "Gmail - Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "messageBody": "={{$json.metadata.body}}",
+        "additionalFields": {
+          "toList": "={{$json.metadata.to}}",
+          "ccList": "={{$json.metadata.cc}}",
+          "bccList": "={{$json.metadata.bcc}}",
+          "subject": "={{$json.metadata.subject}}",
+          "send": false
+        }
+      },
+      "id": "98af83d4-5861-4fc6-8bcb-89d24e130cc3",
+      "name": "Gmail - Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "addLabel",
+        "messageId": "={{$json.metadata.messageId}}",
+        "labelIds": [
+          "={{$json.metadata.labelId || $env.GMAIL_PRIORITY_LABEL}}"
+        ]
+      },
+      "id": "08a20c07-13aa-4a8a-8d5a-18f0e0d8da80",
+      "name": "Gmail - Apply Label",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "summarize",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "message": "Summarize this Gmail thread for the executive team and highlight action items: {{$json}}",
+            "sender": "user"
+          }
+        ]
+      },
+      "id": "39127df1-149b-488f-b9ab-1dc7ad083a6d",
+      "name": "OpenAI - Summarize Thread",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 3,
+      "position": [
+        420,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nreturn items.map(item => {\n  const index = item.pairedItem?.item ?? 0;\n  const source = store.tasks?.[index] || {};\n  return { json: { domain: source.domain || 'gmail', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "064e866a-0086-4571-916f-c3a5536cf40a",
+      "name": "Function - Format Action Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "domain",
+              "value": "gmail"
+            }
+          ],
+          "json": [
+            {
+              "name": "result",
+              "value": "={\"status\":\"skipped\",\"reason\":\"No gmail tasks queued.\"}"
+            }
+          ]
+        }
+      },
+      "id": "9393424f-9731-4e39-9e04-5d1d2e5e1ebc",
+      "name": "Set - No Tasks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Function - Extract Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Extract Tasks": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Fan Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - No Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Fan Out": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route Action": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Fetch Thread",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Apply Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Fetch Thread": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Summarize Thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Summarize Thread": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Reply": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Draft": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Apply Label": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - No Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

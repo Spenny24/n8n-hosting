@@ -1,0 +1,367 @@
+{
+  "name": "Google Calendar MCP Tools",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "55074a75-766a-404e-beab-ad7936fdc2dd",
+      "name": "Workflow Trigger",
+      "type": "n8n-nodes-base.workflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = items[0]?.json || {};\nconst tasks = Array.isArray(input.tasks) ? input.tasks : [];\nconst store = this.getWorkflowStaticData('global');\nstore.tasks = tasks;\nreturn [{ json: { domain: input.domain || 'calendar', tasks } }];"
+      },
+      "id": "2e5fa271-2ccd-446c-9252-e80226028b94",
+      "name": "Function - Extract Tasks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.tasks.length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "44b165fc-5ede-4295-bc17-3d32311e6a56",
+      "name": "IF - Has Tasks",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const tasks = items[0].json.tasks || [];\nreturn tasks.map(task => ({ json: task }));"
+      },
+      "id": "05c9c27a-ecf7-4dd9-bc44-9bfb997bf811",
+      "name": "Function - Fan Out",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "propertyName": "action",
+        "dataType": "string",
+        "rules": [
+          {
+            "operation": "equal",
+            "value": "create_event"
+          },
+          {
+            "operation": "equal",
+            "value": "update_event"
+          },
+          {
+            "operation": "equal",
+            "value": "delete_event"
+          },
+          {
+            "operation": "equal",
+            "value": "list_availability"
+          }
+        ]
+      },
+      "id": "3f739446-7fef-4664-920f-087922ee7772",
+      "name": "Switch - Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendar": "={{$json.metadata.calendarId || $env.GCAL_PRIMARY || 'primary'}}",
+        "summary": "={{$json.summary}}",
+        "start": "={{$json.metadata.start}}",
+        "end": "={{$json.metadata.end}}",
+        "additionalFields": {
+          "description": "={{$json.metadata.description || $json.summary}}",
+          "location": "={{$json.metadata.location}}",
+          "attendees": "={{$json.metadata.attendees}}",
+          "sendUpdates": "all"
+        }
+      },
+      "id": "0e6442cb-8f1f-4354-9078-803612ed05ad",
+      "name": "Google Calendar - Create Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "update",
+        "calendar": "={{$json.metadata.calendarId || $env.GCAL_PRIMARY || 'primary'}}",
+        "eventId": "={{$json.metadata.eventId}}",
+        "updateFields": {
+          "summary": "={{$json.summary}}",
+          "description": "={{$json.metadata.description}}",
+          "location": "={{$json.metadata.location}}",
+          "start": "={{$json.metadata.start}}",
+          "end": "={{$json.metadata.end}}",
+          "attendees": "={{$json.metadata.attendees}}",
+          "sendUpdates": "all"
+        }
+      },
+      "id": "2180564d-cc2d-4829-97ba-06171f9467d0",
+      "name": "Google Calendar - Update Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "delete",
+        "calendar": "={{$json.metadata.calendarId || $env.GCAL_PRIMARY || 'primary'}}",
+        "eventId": "={{$json.metadata.eventId}}",
+        "options": {
+          "sendUpdates": "all"
+        }
+      },
+      "id": "cbd45cb3-331f-41b6-a681-dda8f039e54e",
+      "name": "Google Calendar - Delete Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        220,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "getAll",
+        "calendar": "={{$json.metadata.calendarId || $env.GCAL_PRIMARY || 'primary'}}",
+        "returnAll": true,
+        "options": {
+          "timeMin": "={{$json.metadata.start || $now.startOf('day')}}",
+          "timeMax": "={{$json.metadata.end || $now.plus({ days: 7 })}}",
+          "query": "={{$json.metadata.query}}"
+        }
+      },
+      "id": "4b794e6d-1769-4bf4-b48a-56467a1c7e1f",
+      "name": "Google Calendar - List Availability",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 2,
+      "position": [
+        220,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const store = this.getWorkflowStaticData('global');\nreturn items.map(item => {\n  const index = item.pairedItem?.item ?? 0;\n  const source = store.tasks?.[index] || {};\n  return { json: { domain: source.domain || 'calendar', action: source.action, task: source, result: item.json } };\n});"
+      },
+      "id": "bfbbeed3-244b-4fa4-a38b-92a52c0689b7",
+      "name": "Function - Format Action Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "domain",
+              "value": "calendar"
+            }
+          ],
+          "json": [
+            {
+              "name": "result",
+              "value": "={\"status\":\"skipped\",\"reason\":\"No calendar tasks queued.\"}"
+            }
+          ]
+        }
+      },
+      "id": "ede85593-cbaa-48ad-af96-703df84b9c64",
+      "name": "Set - No Tasks",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Function - Extract Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Extract Tasks": {
+      "main": [
+        [
+          {
+            "node": "IF - Has Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Fan Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - No Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function - Fan Out": {
+      "main": [
+        [
+          {
+            "node": "Switch - Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Route Action": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar - Create Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Calendar - Update Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Calendar - Delete Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Calendar - List Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar - Create Event": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar - Update Event": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar - Delete Event": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar - List Availability": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - No Tasks": {
+      "main": [
+        [
+          {
+            "node": "Function - Format Action Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
