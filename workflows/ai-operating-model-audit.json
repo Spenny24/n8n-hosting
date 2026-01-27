@@ -1,0 +1,1344 @@
+{
+  "name": "AI Operating Model Audit",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "28256bb3-6c34-4701-b9ba-9d05755374c8",
+      "name": "Manual Trigger - Start Audit",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -2288,
+        112
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "// TOTO Foods Client Configuration\\nreturn [{\\n  json: {\\n    client_name: \\\"TOTO Foods\\\",\\n    client_email: \\\"mrchspence@gmail.com\\\",\\n    sector: \\\"Food & Beverage\\\",\\n    gdrive_folder_id: \\\"1ecFCQPJIxS7pwmswxfHvnLqGe3garKlb\\\",\\n    google_sheets_raci_id: \\\"1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8\\\",\\n    google_sheets_kpi_id: \\\"1XcggscF9iSF3saKBnM_CWmbGnr7Ls3qBjgKNBRgzp5M\\\",\\n    market_count: 25,\\n    maturity_stage: \\\"Walk\\\",\\n    audit_timestamp: new Date().toISOString(),\\n    audit_id: `TOTO_Foods_${new Date().toISOString().replace(/[:.]/g, '').slice(0, 15)}`\\n  }\\n}];"
+      },
+      "id": "d61dafa5-547d-4f44-94af-88900a0a97ee",
+      "name": "Set Client Config",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -2064,
+        112
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1zXqRsXEmw-PQE-9nQKeDy_shjarz6Y97",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "drawingsToFormat": "application/pdf"
+            }
+          }
+        }
+      },
+      "id": "a0a33b77-6fca-4c5d-9f1d-eeb39edd10e7",
+      "name": "1.1 Google Drive - Org Data",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        -1840,
+        -304
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HGcwinsAHvFxWc4L",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "=1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "yes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "cf56424c-60db-4dbe-b6f1-dfb1109eeafe",
+      "name": "1.2 Google Sheets - RACI Matrix",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -1840,
+        -112
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.airtable.com/v0/appE3ZTIBGNCbQmPf/Tools_Inventory?filterByFormula=AND({Client}='{{$('Set Client Config').first().json.client_name}}')",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "5053ca79-3fdc-4ddd-8481-2e0b10a26ff3",
+      "name": "1.3 Tool Inventory - API Call",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1840,
+        80
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0Gdjq1yShsYU4A6D",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "=1XcggscF9iSF3saKBnM_CWmbGnr7Ls3qBjgKNBRgzp5M",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1XcggscF9iSF3saKBnM_CWmbGnr7Ls3qBjgKNBRgzp5M/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "235e81ae-dbc0-4e3d-bc16-8997c9d4e53a",
+      "name": "1.4 KPI Snapshot - Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -1840,
+        272
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "passThrough"
+      },
+      "id": "f23c4d1f-7aeb-418b-ae00-5cc3c5efe730",
+      "name": "Merge Discovery Data",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        -1616,
+        -80
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "// Data Cleaner - Normalize and structure all collected data\\nconst sourceItems = $input.all();\\nconst clientConfig = $('Set Client Config').first().json || {};\\n\\nconst currentModelData = {\\n  client_name: clientConfig.client_name || 'Unknown Client',\\n  audit_id: clientConfig.audit_id || `AUDIT_${Date.now()}`,\\n  audit_timestamp: clientConfig.audit_timestamp || new Date().toISOString(),\\n  org_structure: [],\\n  tools: [],\\n  processes: [],\\n  kpis: {},\\n  raw_documents: []\\n};\\n\\nfor (const item of sourceItems) {\\n  const data = item.json || {};\\n\\n  if (item.binary?.data) {\\n    currentModelData.raw_documents.push({\\n      name: data.name || 'Unnamed Document',\\n      type: 'document',\\n      content: item.binary.data.data || '',\\n      source: 'google_drive'\\n    });\\n  } else if (data.mimeType || data.data) {\\n    currentModelData.raw_documents.push({\\n      name: data.name || 'Unnamed Document',\\n      type: 'document',\\n      content: data.data || '',\\n      source: 'google_drive'\\n    });\\n  }\\n\\n  if (data['Process/Task'] || data.Process || data.Responsible) {\\n    currentModelData.org_structure.push({\\n      type: 'raci_matrix',\\n      process: data['Process/Task'] || data.Process || '',\\n      responsible: data.Responsible || '',\\n      accountable: data.Accountable || '',\\n      consulted: data.Consulted || '',\\n      informed: data.Informed || '',\\n      team: data.Team || '',\\n      tool_used: data['Tool Used'] || data.Tool || '',\\n      frequency: data.Frequency || '',\\n      manual_pct: data['Manual %'] || data.Manual || 0,\\n      source: 'google_sheets'\\n    });\\n  }\\n\\n  if (Array.isArray(data.records)) {\\n    for (const record of data.records) {\\n      const fields = record.fields || {};\\n      currentModelData.tools.push({\\n        name: fields.ToolName || fields.Name || '',\\n        purpose: fields.Purpose || '',\\n        users: fields.UserCount || 0,\\n        overlap_score: fields.OverlapScore || 0,\\n        annual_cost: fields.AnnualCost || 0,\\n        source: 'airtable'\\n      });\\n    }\\n  }\\n\\n  if (data.Metric || data.metric) {\\n    const metric = String(data.Metric || data.metric || '');\\n    const value = parseFloat(data.Value ?? data.value ?? 0) || 0;\\n\\n    if (metric.toLowerCase().includes('turnaround')) {\\n      currentModelData.kpis.turnaround_time_avg = value;\\n    } else if (metric.toLowerCase().includes('utilization')) {\\n      currentModelData.kpis.fte_utilization = value;\\n    } else if (metric.toLowerCase().includes('cost')) {\\n      currentModelData.kpis.cost_per_asset = value;\\n    } else if (metric.toLowerCase().includes('error')) {\\n      currentModelData.kpis.error_rate = value;\\n    } else if (metric.toLowerCase().includes('volume')) {\\n      currentModelData.kpis.volume_per_month = value;\\n    }\\n\\n    currentModelData.kpis.source = 'google_sheets';\\n  }\\n\\n  if (data.turnaround_time_avg !== undefined) {\\n    currentModelData.kpis = {\\n      turnaround_time_avg: data.turnaround_time_avg || 0,\\n      fte_utilization: data.fte_utilization || 0,\\n      cost_per_asset: data.cost_per_asset || 0,\\n      error_rate: data.error_rate || 0,\\n      volume_per_month: data.volume_per_month || 0,\\n      source: 'google_sheets'\\n    };\\n  }\\n}\\n\\ncurrentModelData.tools = [...new Map(currentModelData.tools.map((tool) => [tool.name || tool.purpose, tool])).values()];\\ncurrentModelData.org_structure = [...new Map(currentModelData.org_structure.map((org) => [org.process, org])).values()];\\n\\nif (Object.keys(currentModelData.kpis).length === 0) {\\n  currentModelData.kpis = {\\n    turnaround_time_avg: 0,\\n    fte_utilization: 0,\\n    cost_per_asset: 0,\\n    error_rate: 0,\\n    volume_per_month: 0,\\n    source: 'default'\\n  };\\n}\\n\\nconsole.log('Data Cleaner - Processed items:', currentModelData);\\n\\nreturn [{ json: currentModelData }];"
+      },
+      "id": "f4e6ff3c-182d-4d1a-bacd-09bd6aaab076",
+      "name": "2.1 Data Cleaner",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -1392,
+        -112
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert operations consultant analyzing a company's operating model.\\n\\nClient: {{ $json.client_name }}\\nSector: {{ $('Set Client Config').first().json.sector }}\\n\\nAnalyze the following operating model data and identify:\\n1. Redundancies (duplicate tools, overlapping roles)\\n2. Bottlenecks (process delays, approval chains)\\n3. Manual dependencies (repetitive human tasks)\\n\\nFor each process identified, score it on:\\n- Automation Readiness (1-10): How easy to automate\\n- Impact Potential (1-10): Expected efficiency gain\\n- Risk Level (1-10): Implementation complexity/risk\\n\\nData to analyze:\\n```json\\n{{ JSON.stringify($json, null, 2) }}\\n```\\n\\nReturn your analysis as structured JSON:\\n{\\n  \\\"inefficiencies\\\": [\\n    {\\n      \\\"category\\\": \\\"redundancy|bottleneck|manual_dependency\\\",\\n      \\\"description\\\": \\\"...\\\",\\n      \\\"affected_process\\\": \\\"...\\\",\\n      \\\"automation_readiness\\\": 1-10,\\n      \\\"impact_potential\\\": 1-10,\\n      \\\"risk_level\\\": 1-10,\\n      \\\"annual_cost\\\": estimated cost in USD\\n    }\\n  ],\\n  \\\"summary\\\": \\\"Executive summary of key findings\\\"\\n}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "44d79bbf-34fa-4adc-afdb-f22dc6d869e1",
+      "name": "2.2 Inefficiency Scorer - GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -944,
+        -400
+      ],
+      "typeVersion": 1.7,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an AI transformation specialist mapping automation opportunities.\\n\\nClient: {{ $('Set Client Config').first().json.client_name }}\\n\\nBased on this inefficiency analysis:\\n```json\\n{{ JSON.stringify($('2.2 Inefficiency Scorer - GPT-4o').first().json, null, 2) }}\\n```\\n\\nFor each identified inefficiency, recommend specific AI/automation solutions:\\n- Production Studio modules (Generate, Adapt, Localise, etc.)\\n- n8n workflow automations\\n- GPT-4o agentic solutions\\n- DeepL, Whisper, Vision APIs\\n- Custom automation tools\\n\\nReturn as JSON:\\n{\\n  \\\"recommendations\\\": [\\n    {\\n      \\\"process\\\": \\\"...\\\",\\n      \\\"ai_fit\\\": \\\"High|Medium|Low\\\",\\n      \\\"recommended_tech\\\": [\\\"tool1\\\", \\\"tool2\\\"],\\n      \\\"implementation_complexity\\\": \\\"Simple|Moderate|Complex\\\",\\n      \\\"potential_saving_pct\\\": 0-100,\\n      \\\"estimated_roi_months\\\": number,\\n      \\\"description\\\": \\\"How this would work\\\"\\n    }\\n  ]\\n}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "51f66fc5-79b2-45cc-9d48-37e892e1dda1",
+      "name": "2.3 AI Fit Mapper - GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -944,
+        -208
+      ],
+      "typeVersion": 1.7,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.airtable.com/v0/appE3ZTIBGNCbQmPf/Maturity_Benchmarks",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "options": {}
+      },
+      "id": "6f7b50cf-5754-4db3-8cb5-5068025d0f00",
+      "name": "2.4a Fetch Benchmark Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1168,
+        -16
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0Gdjq1yShsYU4A6D",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Benchmark Comparator - Crawl/Walk/Run maturity assessment\\nconst clientData = $('2.1 Data Cleaner').first().json;\\nlet inefficiencies = {};\\nlet recommendations = {};\\n\\ntry {\\n  const rawInEff = $('2.2 Inefficiency Scorer - GPT-4o').first().json.message?.content || $('2.2 Inefficiency Scorer - GPT-4o').first().json.content || '{}';\\n  inefficiencies = JSON.parse(rawInEff);\\n} catch (error) {\\n  console.error('Failed to parse inefficiencies:', error.message);\\n  inefficiencies = {};\\n}\\n\\ntry {\\n  const rawRec = $('2.3 AI Fit Mapper - GPT-4o').first().json.message?.content || $('2.3 AI Fit Mapper - GPT-4o').first().json.content || '{}';\\n  recommendations = JSON.parse(rawRec);\\n} catch (error) {\\n  console.error('Failed to parse recommendations:', error.message);\\n  recommendations = {};\\n}\\n\\nconst benchmarks = $('2.4a Fetch Benchmark Data').first().json.records || [];\\nconst pillars = [\\n  'Content_Production',\\n  'Operations_Efficiency',\\n  'Data_Analytics',\\n  'Technology_Stack',\\n  'People_Skills',\\n  'Sustainability'\\n];\\n\\nconst maturityScores = {};\\n\\nfor (const pillar of pillars) {\\n  let score = 0;\\n\\n  const toolCount = clientData.tools.filter((tool) => {\\n    const purpose = (tool.purpose || '').toLowerCase();\\n    return purpose.includes(pillar.toLowerCase().split('_')[0]);\\n  }).length;\\n  score += Math.min(toolCount * 5, 33);\\n\\n  const pillarInefficiencies = (inefficiencies.inefficiencies || []).filter((entry) => {\\n    return (entry.affected_process || '').toLowerCase().includes(pillar.toLowerCase().split('_')[0]);\\n  });\\n  const avgReadiness = pillarInefficiencies.reduce((sum, entry) => sum + (entry.automation_readiness || 0), 0) / (pillarInefficiencies.length || 1);\\n  score += avgReadiness * 3.3;\\n\\n  if ((clientData.kpis.fte_utilization || 0) > 75) score += 17;\\n  if ((clientData.kpis.error_rate || 100) < 5) score += 17;\\n\\n  let level = 'Crawl';\\n  if (score >= 70) level = 'Run';\\n  else if (score >= 40) level = 'Walk';\\n\\n  maturityScores[pillar] = {\\n    score: Math.round(score),\\n    level,\\n    gap_to_next: level === 'Run' ? 0 : level === 'Walk' ? Math.max(70 - score, 0) : Math.max(40 - score, 0)\\n  };\\n}\\n\\nconst avgScore = Object.values(maturityScores).reduce((sum, pillar) => sum + pillar.score, 0) / (pillars.length || 1);\\nlet overallLevel = 'Crawl';\\nif (avgScore >= 70) overallLevel = 'Run';\\nelse if (avgScore >= 40) overallLevel = 'Walk';\\n\\nconst result = {\\n  client_name: clientData.client_name,\\n  audit_id: clientData.audit_id,\\n  overall_maturity: {\\n    level: overallLevel,\\n    score: Math.round(avgScore)\\n  },\\n  pillar_scores: maturityScores,\\n  benchmark_comparison: {\\n    industry_average: 55,\\n    client_score: Math.round(avgScore),\\n    percentile: Math.round(Math.max(Math.min(avgScore, 100), 0))\\n  },\\n  benchmark_records: benchmarks\\n};\\n\\nconsole.log('Benchmark Comparator Result:', result);\\nreturn [{ json: result }];"
+      },
+      "id": "de8a97c0-625d-4f40-9895-fceee5674ace",
+      "name": "2.4b Benchmark Comparator",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -880,
+        -16
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "combine"
+      },
+      "id": "0b3d873e-3904-4310-9d38-6e796d57845a",
+      "name": "Merge Analysis Results",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        -592,
+        -144
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a world-class operating model architect designing comprehensive AI-infused future states. Return ONLY valid JSON.\\n\\nClient: {{ $('Set Client Config').first().json.client_name }}\\nSector: {{ $('Set Client Config').first().json.sector }}\\n\\nANALYSIS DATA (from previous nodes):\\n{{ JSON.stringify($json, null, 2) }}\\n\\nDesign a COMPREHENSIVE AI-enabled target operating model. Output ONLY this JSON:\\n\\n{\\n  \\\"organization_structure\\\": {\\n    \\\"model_type\\\": \\\"Hub-and-Spoke\\\",\\n    \\\"swim_lanes\\\": [\\n      {\\n        \\\"team\\\": \\\"Team Name\\\",\\n        \\\"responsibilities\\\": [\\\"Resp 1\\\", \\\"Resp 2\\\"],\\n        \\\"ai_augmentation\\\": \\\"How AI enhances this team\\\",\\n        \\\"headcount\\\": 20,\\n        \\\"key_roles\\\": [\\\"Role 1\\\", \\\"Role 2\\\"]\\n      }\\n    ],\\n    \\\"new_roles\\\": [\\n      {\\\"role\\\": \\\"AI Agent Supervisor\\\", \\\"team\\\": \\\"Technology\\\", \\\"description\\\": \\\"Manages AI agents\\\"},\\n      {\\\"role\\\": \\\"Automation Specialist\\\", \\\"team\\\": \\\"Operations\\\", \\\"description\\\": \\\"Builds n8n workflows\\\"}\\n    ],\\n    \\\"roles_to_eliminate\\\": [\\\"Role to remove and why\\\"]\\n  },\\n  \\\"process_flows\\\": [\\n    {\\n      \\\"process_name\\\": \\\"Process Name\\\",\\n      \\\"current_state\\\": \\\"How it works now\\\",\\n      \\\"future_state\\\": \\\"How it will work with AI\\\",\\n      \\\"steps\\\": [\\n        {\\n          \\\"step\\\": \\\"Step name\\\",\\n          \\\"owner\\\": \\\"Human role or AI agent name\\\",\\n          \\\"automation_level\\\": \\\"Fully automated|AI-assisted|Human-led\\\",\\n          \\\"tools\\\": [\\\"Tool 1\\\", \\\"Tool 2\\\"],\\n          \\\"duration\\\": \\\"Time estimate\\\"\\n        }\\n      ],\\n      \\\"ai_agents_involved\\\": [\\n        {\\\"agent\\\": \\\"Agent Name\\\", \\\"role\\\": \\\"What it does\\\"}\\n      ],\\n      \\\"automation_tools\\\": [\\\"n8n workflow\\\", \\\"Production Studio module\\\"],\\n      \\\"human_touchpoints\\\": [\\\"Where humans add value\\\"],\\n      \\\"kpi_improvement\\\": \\\"Expected improvement\\\"\\n    }\\n  ],\\n  \\\"technology_architecture\\\": {\\n    \\\"future_stack\\\": {\\n      \\\"core_platforms\\\": [\\\"Production Studio\\\", \\\"n8n\\\", \\\"Supabase\\\"],\\n      \\\"ai_layer\\\": [\\\"GPT-4o\\\", \\\"Whisper\\\", \\\"Vision\\\", \\\"DeepL\\\"]\\n    },\\n    \\\"ai_agents\\\": [\\n      {\\n        \\\"agent_name\\\": \\\"Content Generation Agent\\\",\\n        \\\"platform\\\": \\\"GPT-4o\\\",\\n        \\\"responsibility\\\": \\\"Generate marketing content\\\",\\n        \\\"triggers\\\": [\\\"New brief received\\\"],\\n        \\\"outputs\\\": [\\\"Draft content\\\"],\\n        \\\"integrations\\\": [\\\"Production Studio\\\", \\\"DAM\\\"]\\n      },\\n      {\\n        \\\"agent_name\\\": \\\"QA Automation Agent\\\",\\n        \\\"platform\\\": \\\"GPT-4o Vision\\\",\\n        \\\"responsibility\\\": \\\"Quality check assets\\\",\\n        \\\"triggers\\\": [\\\"Asset uploaded\\\"],\\n        \\\"outputs\\\": [\\\"QA report\\\"],\\n        \\\"integrations\\\": [\\\"Production Studio\\\"]\\n      },\\n      {\\n        \\\"agent_name\\\": \\\"Localization Agent\\\",\\n        \\\"platform\\\": \\\"DeepL + GPT-4o\\\",\\n        \\\"responsibility\\\": \\\"Translate and adapt\\\",\\n        \\\"triggers\\\": [\\\"Asset approved\\\"],\\n        \\\"outputs\\\": [\\\"Localized assets\\\"],\\n        \\\"integrations\\\": [\\\"Production Studio\\\", \\\"n8n\\\"]\\n      }\\n    ],\\n    \\\"n8n_workflows\\\": [\\n      {\\n        \\\"workflow_name\\\": \\\"Workflow name\\\",\\n        \\\"trigger\\\": \\\"What starts it\\\",\\n        \\\"steps\\\": [\\\"Step 1\\\", \\\"Step 2\\\"],\\n        \\\"systems_connected\\\": [\\\"System A\\\", \\\"System B\\\"]\\n      }\\n    ],\\n    \\\"tools_to_retire\\\": [\\n      {\\\"tool\\\": \\\"Tool\\\", \\\"reason\\\": \\\"Why\\\", \\\"annual_saving\\\": 100000}\\n    ],\\n    \\\"tools_to_add\\\": [\\n      {\\\"tool\\\": \\\"Tool\\\", \\\"purpose\\\": \\\"Why\\\", \\\"annual_cost\\\": 50000}\\n    ]\\n  },\\n  \\\"new_raci_matrix\\\": [\\n    {\\n      \\\"process\\\": \\\"Process Name\\\",\\n      \\\"responsible\\\": \\\"Role or AI Agent\\\",\\n      \\\"accountable\\\": \\\"Role\\\",\\n      \\\"consulted\\\": [\\\"Role 1\\\"],\\n      \\\"informed\\\": [\\\"Role 2\\\"],\\n      \\\"automation_level\\\": \\\"80%\\\",\\n      \\\"tools_used\\\": [\\\"Tool 1\\\"]\\n    }\\n  ],\\n  \\\"transformation_roadmap\\\": {\\n    \\\"phase_1_quick_wins\\\": {\\n      \\\"timeline\\\": \\\"0-3 months\\\",\\n      \\\"objectives\\\": [\\\"Obj 1\\\", \\\"Obj 2\\\"],\\n      \\\"deliverables\\\": [\\n        {\\\"deliverable\\\": \\\"Name\\\", \\\"description\\\": \\\"What\\\", \\\"effort_days\\\": 30}\\n      ],\\n      \\\"automation_implementations\\\": [\\\"Auto 1\\\"],\\n      \\\"agent_deployments\\\": [\\\"Agent 1\\\"]\\n    },\\n    \\\"phase_2_foundation\\\": {\\n      \\\"timeline\\\": \\\"3-9 months\\\",\\n      \\\"objectives\\\": [],\\n      \\\"platform_deployments\\\": [\\\"Platform 1\\\"]\\n    },\\n    \\\"phase_3_scale\\\": {\\n      \\\"timeline\\\": \\\"9-18 months\\\",\\n      \\\"market_rollouts\\\": [\\\"Market 1\\\"]\\n    },\\n    \\\"phase_4_optimize\\\": {\\n      \\\"timeline\\\": \\\"18-24 months\\\",\\n      \\\"continuous_improvements\\\": []\\n    }\\n  },\\n  \\\"success_metrics\\\": {\\n    \\\"kpis_to_track\\\": [\\n      {\\\"kpi\\\": \\\"KPI Name\\\", \\\"current\\\": 100, \\\"target\\\": 150, \\\"improvement_pct\\\": 50}\\n    ]\\n  },\\n  \\\"change_management\\\": {\\n    \\\"training_required\\\": [\\\"Training 1\\\", \\\"Training 2\\\"],\\n    \\\"risk_mitigation\\\": [\\\"Risk and mitigation\\\"]\\n  }\\n}\\n\\nCRITICAL: Return ONLY valid JSON. NO explanations. NO markdown. Be extremely detailed.",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 5000,
+          "temperature": 0.3
+        }
+      },
+      "id": "f0affe16-1121-440b-af63-7b8a434bfcb4",
+      "name": "3.1 Blueprint Generator - GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -368,
+        -144
+      ],
+      "typeVersion": 1.7,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": " const result = {\\n  scenarios: {\\n    cautious: {\\n      name: \\\"Cautious - Quick Wins Only\\\",\\n      timeline_months: 6,\\n      implementation_cost: 50000,\\n      annual_saving: 150000,\\n      fte_saved: 2,\\n      efficiency_gain_pct: 25,\\n      three_year_roi: 800,\\n      payback_period_months: 4\\n    },\\n    hybrid: {\\n      name: \\\"Hybrid - Balanced Approach (Recommended)\\\",\\n      timeline_months: 12,\\n      implementation_cost: 150000,\\n      annual_saving: 400000,\\n      fte_saved: 5,\\n      efficiency_gain_pct: 58,\\n      three_year_roi: 700,\\n      payback_period_months: 5\\n    },\\n    aggressive: {\\n      name: \\\"Aggressive - Full Transformation\\\",\\n      timeline_months: 18,\\n      implementation_cost: 300000,\\n      annual_saving: 800000,\\n      fte_saved: 10,\\n      efficiency_gain_pct: 85,\\n      three_year_roi: 700,\\n      payback_period_months: 5\\n    }\\n  },\\n  recommended_scenario: \\\"hybrid\\\"\\n};\\n\\nreturn [{ json: result }];\\n"
+      },
+      "id": "97df42ae-0840-4c9b-9ed7-d8579ab1e895",
+      "name": "3.2 ROI Simulator (3 Scenarios)",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -16,
+        -304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const blueprintNode = $('3.1 Blueprint Generator - GPT-4o').first().json;\\nconst roiData = $('3.2 ROI Simulator (3 Scenarios)').first().json;\\nconst clientName = $('Set Client Config').first().json.client_name;\\n\\nconst result = {\\n  client_name: clientName,\\n  audit_id: $('2.1 Data Cleaner').first().json.audit_id,\\n  diagrams: {\\n    organization_structure: 'Mermaid diagram placeholder',\\n    process_flow: 'Mermaid diagram placeholder',\\n    technology_architecture: 'Mermaid diagram placeholder',\\n    implementation_roadmap: 'Gantt chart placeholder'\\n  },\\n  markdown_report: `${clientName} - AI Operating Model Blueprint - Visual diagrams generated`,\\n  references: {\\n    blueprint_node: blueprintNode,\\n    roi: roiData\\n  }\\n};\\n\\nconsole.log('Visual Schema Builder - Diagrams created');\\nreturn [{ json: result }];\\n"
+      },
+      "id": "eed96418-b6e4-4cb8-94ce-cb3c67d0192e",
+      "name": "3.3 Visual Schema Builder",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2064,
+        64
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a world-class operating model architect.\nClient: {{ $('Set Client Config').first().json.client_name }}\nSector: {{ $('Set Client Config').first().json.sector }}\n\nAnalyse this data:\n{{ JSON.stringify($json, null, 2) }}\n\nReturn ONLY valid JSON (no markdown) that matches this schema:\n{\n  \"organization_structure\": {\"model_type\": \"Hub-and-Spoke\", \"swim_lanes\": [{\"team\": \"Team Name\", \"responsibilities\": [\"Resp 1\"], \"ai_augmentation\": \"How AI helps\", \"headcount\": 20, \"key_roles\": [\"Role\"]}], \"new_roles\": [{\"role\": \"AI Agent Supervisor\", \"team\": \"Technology\", \"description\": \"Manages AI agents\"}], \"roles_to_eliminate\": [\"Role to remove and why\"]},\n  \"process_flows\": [{\"process_name\": \"Process\", \"current_state\": \"Current\", \"future_state\": \"Future with AI\", \"steps\": [{\"step\": \"Step\", \"owner\": \"Owner\", \"automation_level\": \"AI-assisted\", \"tools\": [\"Tool\"], \"duration\": \"Time\"}], \"ai_agents_involved\": [{\"agent\": \"Agent\", \"role\": \"Role\"}], \"automation_tools\": [\"Tool\"], \"human_touchpoints\": [\"Touchpoint\"], \"kpi_improvement\": \"Impact\"}],\n  \"technology_architecture\": {\"future_stack\": {\"core_platforms\": [\"Production Studio\", \"n8n\", \"Supabase\"], \"ai_layer\": [\"GPT-4o\", \"Whisper\", \"Vision\", \"DeepL\"]}, \"ai_agents\": [{\"agent_name\": \"Content Generation Agent\", \"platform\": \"GPT-4o\", \"responsibility\": \"Generate marketing content\", \"triggers\": [\"New brief received\"], \"outputs\": [\"Draft content\"], \"integrations\": [\"Production Studio\", \"DAM\"]}], \"n8n_workflows\": [{\"workflow_name\": \"Workflow name\", \"trigger\": \"Trigger\", \"steps\": [\"Step 1\"], \"systems_connected\": [\"System\"]}], \"tools_to_retire\": [{\"tool\": \"Tool\", \"reason\": \"Why\", \"annual_saving\": 100000}], \"tools_to_add\": [{\"tool\": \"Tool\", \"purpose\": \"Why\", \"annual_cost\": 50000}]},\n  \"new_raci_matrix\": [{\"process\": \"Process\", \"responsible\": \"Role or AI Agent\", \"accountable\": \"Role\", \"consulted\": [\"Role\"], \"informed\": [\"Role\"], \"automation_level\": \"80%\", \"tools_used\": [\"Tool\"]}],\n  \"transformation_roadmap\": {\"phase_1_quick_wins\": {\"timeline\": \"0-3 months\", \"objectives\": [\"Obj\"], \"deliverables\": [{\"deliverable\": \"Name\", \"description\": \"What\", \"effort_days\": 30}], \"automation_implementations\": [\"Auto\"], \"agent_deployments\": [\"Agent\"]}, \"phase_2_foundation\": {\"timeline\": \"3-9 months\", \"objectives\": [], \"platform_deployments\": [\"Platform\"]}, \"phase_3_scale\": {\"timeline\": \"9-18 months\", \"market_rollouts\": [\"Market\"]}, \"phase_4_optimize\": {\"timeline\": \"18-24 months\", \"continuous_improvements\": []}},\n  \"success_metrics\": {\"kpis_to_track\": [{\"kpi\": \"KPI Name\", \"current\": 100, \"target\": 150, \"improvement_pct\": 50}]},\n  \"change_management\": {\"training_required\": [\"Training\"], \"risk_mitigation\": [\"Risk and mitigation\"]}\n}",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 5000,
+          "temperature": 0.3
+        }
+      },
+      "id": "f0affe16-1121-440b-af63-7b8a434bfcb4",
+      "name": "3.1 Blueprint Generator - GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        -368,
+        -144
+      ],
+      "typeVersion": 1.7,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": " const result = {\\n  scenarios: {\\n    cautious: {\\n      name: \\\"Cautious - Quick Wins Only\\\",\\n      timeline_months: 6,\\n      implementation_cost: 50000,\\n      annual_saving: 150000,\\n      fte_saved: 2,\\n      efficiency_gain_pct: 25,\\n      three_year_roi: 800,\\n      payback_period_months: 4\\n    },\\n    hybrid: {\\n      name: \\\"Hybrid - Balanced Approach (Recommended)\\\",\\n      timeline_months: 12,\\n      implementation_cost: 150000,\\n      annual_saving: 400000,\\n      fte_saved: 5,\\n      efficiency_gain_pct: 58,\\n      three_year_roi: 700,\\n      payback_period_months: 5\\n    },\\n    aggressive: {\\n      name: \\\"Aggressive - Full Transformation\\\",\\n      timeline_months: 18,\\n      implementation_cost: 300000,\\n      annual_saving: 800000,\\n      fte_saved: 10,\\n      efficiency_gain_pct: 85,\\n      three_year_roi: 700,\\n      payback_period_months: 5\\n    }\\n  },\\n  recommended_scenario: \\\"hybrid\\\"\\n};\\n\\nreturn [{ json: result }];\\n"
+      },
+      "id": "97df42ae-0840-4c9b-9ed7-d8579ab1e895",
+      "name": "3.2 ROI Simulator (3 Scenarios)",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -16,
+        -304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const blueprintNode = $('3.1 Blueprint Generator - GPT-4o').first().json;\\nconst roiData = $('3.2 ROI Simulator (3 Scenarios)').first().json;\\nconst clientName = $('Set Client Config').first().json.client_name;\\n\\nconst result = {\\n  client_name: clientName,\\n  audit_id: $('2.1 Data Cleaner').first().json.audit_id,\\n  diagrams: {\\n    organization_structure: 'Mermaid diagram placeholder',\\n    process_flow: 'Mermaid diagram placeholder',\\n    technology_architecture: 'Mermaid diagram placeholder',\\n    implementation_roadmap: 'Gantt chart placeholder'\\n  },\\n  markdown_report: `${clientName} - AI Operating Model Blueprint - Visual diagrams generated`,\\n  references: {\\n    blueprint_node: blueprintNode,\\n    roi: roiData\\n  }\\n};\\n\\nconsole.log('Visual Schema Builder - Diagrams created');\\nreturn [{ json: result }];\\n"
+      },
+      "id": "eed96418-b6e4-4cb8-94ce-cb3c67d0192e",
+      "name": "3.3 Visual Schema Builder",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2064,
+        64
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const clientConfig = $('Set Client Config').first().json;\\nconst dataCleaner = $('2.1 Data Cleaner').first().json;\\nconst inefficiencyScorer = $('2.2 Inefficiency Scorer - GPT-4o').first().json;\\nconst aiFitMapper = $('2.3 AI Fit Mapper - GPT-4o').first().json;\\nconst blueprint = $('3.1 Blueprint Generator - GPT-4o').first().json;\\nconst roiSimulator = $('3.2 ROI Simulator (3 Scenarios)').first().json;\\n\\nconst inefficiencies = inefficiencyScorer.message?.content || '';\\nconst recommendations = aiFitMapper.message?.content || '';\\n\\nconst patterns = {\\n  client_name: clientConfig.client_name,\\n  sector: clientConfig.sector,\\n  maturity_stage: clientConfig.maturity_stage,\\n  audit_id: dataCleaner.audit_id,\\n  audit_date: new Date().toISOString(),\\n  key_inefficiencies: String(inefficiencies).substring(0, 5000),\\n  ai_recommendations: String(recommendations).substring(0, 5000),\\n  recommended_scenario: roiSimulator.recommended_scenario || 'hybrid',\\n  roi_achieved: roiSimulator.scenarios?.hybrid?.three_year_roi || 0,\\n  implementation_cost: roiSimulator.scenarios?.hybrid?.implementation_cost || 0,\\n  annual_saving: roiSimulator.scenarios?.hybrid?.annual_saving || 0,\\n  lessons_learned: [\\n    `AI transformation for ${clientConfig.sector}`,\\n    `Maturity stage: ${clientConfig.maturity_stage}`,\\n    `ROI: ${(roiSimulator.scenarios?.hybrid?.three_year_roi || 0)}%`\\n  ]\\n};\\n\\nreturn [{ json: patterns }];\\n"
+      },
+      "id": "6c0cd698-ff39-4c67-b965-954f6a7b7a54",
+      "name": "5.2 Pattern Learner",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        3184,
+        -160
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const dataCleaner = $('2.1 Data Cleaner').first().json;\\nconst aiFitMapper = $('2.3 AI Fit Mapper - GPT-4o').first().json;\\n\\nconst AIRTABLE_TOKEN = $env.AIRTABLE_PAT || 'REPLACE_WITH_ENV_TOKEN';\\n\\nlet recommendations = [];\\ntry {\\n  const content = aiFitMapper.message?.content || aiFitMapper.content || '';\\n  const jsonMatch = content.match(/```json\\s*([\\s\\S]*?)```/);\\n  const jsonStr = jsonMatch ? jsonMatch[1] : content;\\n  const parsed = JSON.parse(jsonStr);\\n  recommendations = parsed.recommendations || [];\\n} catch (error) {\\n  console.error('Failed to parse AI Fit Mapper output:', error.message);\\n  recommendations = [];\\n}\\n\\nif (recommendations.length === 0) {\\n  console.log('No recommendations found, returning empty success');\\n  return [{ json: { message: 'No recommendations to save', records: [] } }];\\n}\\n\\nconst payload = {\\n  records: recommendations.slice(0, 10).map((rec) => ({\\n    fields: {\\n      Audit_ID: String(dataCleaner.audit_id || 'N/A'),\\n      Process: String(rec.process || 'Unknown Process').substring(0, 200),\\n      AI_Fit: String(rec.ai_fit || 'Medium'),\\n      Recommended_Tech: String(Array.isArray(rec.recommended_tech) ? rec.recommended_tech.join(', ') : (rec.recommended_solution_type || rec.solution_name || 'N/A')).substring(0, 200),\\n      Complexity: String(rec.implementation_complexity || 'Moderate'),\\n      Potential_Saving_Pct: Number(rec.potential_saving_pct || 0),\\n      ROI_Months: Number(rec.estimated_roi_months || 12),\\n      Description: String(rec.description || rec.solution_description || 'No description available').substring(0, 1000)\\n    }\\n  }))\\n};\\n\\nconst options = {\\n  method: 'POST',\\n  url: 'https://api.airtable.com/v0/appE3ZTIBGNCbQmPf/Recommendations',\\n  headers: {\\n    Authorization: `Bearer ${AIRTABLE_TOKEN}`,\\n    'Content-Type': 'application/json'\\n  },\\n  body: payload,\\n  json: true\\n};\\n\\ntry {\\n  const response = await this.helpers.httpRequest(options);\\n  return [{ json: response }];\\n} catch (error) {\\n  console.error('Airtable Error:', error.message);\\n  console.error('Payload sent:', JSON.stringify(payload, null, 2));\\n  throw new Error(`Airtable API Error: ${JSON.stringify(error.response?.data || error.message)}`);\\n}\\n"
+      },
+      "id": "e76b3d2f-08f7-4ce4-b615-89823d315c8f",
+      "name": "4.1a Write to Airtable - Models",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2512,
+        176
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const dataCleaner = $('2.1 Data Cleaner').first().json;\\nconst aiFitMapper = $('2.3 AI Fit Mapper - GPT-4o').first().json;\\n\\nconst AIRTABLE_TOKEN = $env.AIRTABLE_PAT || 'REPLACE_WITH_ENV_TOKEN';\\n\\nlet recommendations = [];\\ntry {\\n  const content = aiFitMapper.message?.content || aiFitMapper.content || '';\\n  const jsonMatch = content.match(/```json\\s*([\\s\\S]*?)```/);\\n  const jsonStr = jsonMatch ? jsonMatch[1] : content;\\n  const parsed = JSON.parse(jsonStr);\\n  recommendations = parsed.recommendations || [];\\n} catch (error) {\\n  console.error('Failed to parse AI Fit Mapper output:', error.message);\\n  recommendations = [];\\n}\\n\\nif (recommendations.length === 0) {\\n  console.log('No recommendations found, returning empty success');\\n  return [{ json: { message: 'No recommendations to save', records: [] } }];\\n}\\n\\nconst payload = {\\n  records: recommendations.slice(0, 10).map((rec) => ({\\n    fields: {\\n      Audit_ID: String(dataCleaner.audit_id || 'N/A'),\\n      Process: String(rec.process || 'Unknown Process').substring(0, 200),\\n      AI_Fit: String(rec.ai_fit || 'Medium'),\\n      Recommended_Tech: String(Array.isArray(rec.recommended_tech) ? rec.recommended_tech.join(', ') : (rec.recommended_solution_type || rec.solution_name || 'N/A')).substring(0, 200),\\n      Complexity: String(rec.implementation_complexity || 'Moderate'),\\n      Potential_Saving_Pct: Number(rec.potential_saving_pct || 0),\\n      ROI_Months: Number(rec.estimated_roi_months || 12),\\n      Description: String(rec.description || rec.solution_description || 'No description available').substring(0, 1000)\\n    }\\n  }))\\n};\\n\\nconst options = {\\n  method: 'POST',\\n  url: 'https://api.airtable.com/v0/appE3ZTIBGNCbQmPf/Recommendations',\\n  headers: {\\n    Authorization: `Bearer ${AIRTABLE_TOKEN}`,\\n    'Content-Type': 'application/json'\\n  },\\n  body: payload,\\n  json: true\\n};\\n\\ntry {\\n  const response = await this.helpers.httpRequest(options);\\n  return [{ json: response }];\\n} catch (error) {\\n  console.error('Airtable Error:', error.message);\\n  console.error('Payload sent:', JSON.stringify(payload, null, 2));\\n  throw new Error(`Airtable API Error: ${JSON.stringify(error.response?.data || error.message)}`);\\n}\\n"
+      },
+      "id": "74907507-4127-45a7-a9e4-a1e3f4f5a9b2",
+      "name": "4.1b Write to Airtable - Recommendations",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2288,
+        -48
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const blueprint = $('3.1 Blueprint Generator - GPT-4o').first().json;\\nlet newRaci = [];\\ntry {\\n  const content = blueprint.message?.content || blueprint.content || '';\\n  const jsonMatch = content.match(/```json\\s*([\\s\\S]*?)```/);\\n  const jsonStr = jsonMatch ? jsonMatch[1] : content;\\n  const parsed = JSON.parse(jsonStr);\\n  if (Array.isArray(parsed.new_raci_matrix)) {\\n    newRaci = parsed.new_raci_matrix;\\n  }\\n} catch (error) {\\n  console.error('Failed to parse RACI from blueprint:', error.message);\\n  newRaci = [];\\n}\\n\\nconst sheetData = newRaci.map((item) => ({\\n  Process: item.process || '',\\n  Responsible: item.responsible || '',\\n  Accountable: item.accountable || '',\\n  Consulted: Array.isArray(item.consulted) ? item.consulted.join(', ') : item.consulted || '',\\n  Informed: Array.isArray(item.informed) ? item.informed.join(', ') : item.informed || '',\\n  'Automation Level': item.automation_level || '',\\n  'Tools Used': Array.isArray(item.tools_used) ? item.tools_used.join(', ') : item.tools_used || '',\\n  'Updated By': 'n8n AI Workflow',\\n  'Updated Date': new Date().toISOString().split('T')[0]\\n}));\\n\\nconsole.log(`Prepared ${sheetData.length} RACI rows for Google Sheets`);\\nreturn sheetData.map((row) => ({ json: row }));\\n"
+      },
+      "id": "d481c584-36b9-4c2b-a61b-80d71a9cd836",
+      "name": "Extract New RACI",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -16,
+        -96
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const roiData = $('3.2 ROI Simulator (3 Scenarios)').first().json;\\nconst blueprint = $('3.1 Blueprint Generator - GPT-4o').first().json;\\n\\nlet kpiData = [];\\ntry {\\n  const content = blueprint.message?.content || blueprint.content || '';\\n  const jsonMatch = content.match(/```json\\s*([\\s\\S]*?)```/);\\n  const jsonStr = jsonMatch ? jsonMatch[1] : content;\\n  const parsed = JSON.parse(jsonStr);\\n  if (parsed.success_metrics?.kpis_to_track) {\\n    kpiData = parsed.success_metrics.kpis_to_track;\\n  }\\n} catch (error) {\\n  console.error('Failed to parse KPIs from blueprint:', error.message);\\n  kpiData = [];\\n}\\n\\nconst roiKpis = [\\n  { kpi: 'Annual Cost Savings', current: 0, target: roiData.scenarios.hybrid.annual_saving, improvement_pct: 100 },\\n  { kpi: 'FTE Optimization', current: 0, target: roiData.scenarios.hybrid.fte_saved, improvement_pct: 100 },\\n  { kpi: 'Operational Efficiency Gain', current: 100, target: 100 + roiData.scenarios.hybrid.efficiency_gain_pct, improvement_pct: roiData.scenarios.hybrid.efficiency_gain_pct },\\n  { kpi: '3-Year ROI', current: 100, target: roiData.scenarios.hybrid.three_year_roi, improvement_pct: roiData.scenarios.hybrid.three_year_roi - 100 }\\n];\\n\\nconst allKpis = [...kpiData, ...roiKpis];\\n\\nconst sheetData = allKpis.map((item) => ({\\n  'KPI Name': item.kpi,\\n  'Current Value': item.current,\\n  'Target Value': item.target,\\n  'Improvement %': item.improvement_pct,\\n  Category: 'AI Transformation',\\n  Owner: 'Transformation Lead',\\n  'Updated By': 'n8n AI Workflow',\\n  'Updated Date': new Date().toISOString().split('T')[0]\\n}));\\n\\nconsole.log(`Prepared ${sheetData.length} KPI rows for Google Sheets`);\\nreturn sheetData.map((row) => ({ json: row }));\\n"
+      },
+      "id": "76a83b5c-7122-4e95-8b13-3ba48155286c",
+      "name": "Extract KPI Updates",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        208,
+        -304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8",
+          "mode": "list",
+          "cachedResultName": "raci_id",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1822232753,
+          "mode": "list",
+          "cachedResultName": "AI_Projections",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8/edit#gid=1822232753"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "KPI Name": "={{ $json['KPI Name'] }}",
+            "Current Value": "={{ $json['Current Value'] }}",
+            "Target Value": "={{ $json['Target Value'] }}",
+            "Improvement %": "={{ $json['Improvement %'] }}",
+            "Category": "={{ $json.Category }}",
+            "Owner": "={{ $json.Owner }}",
+            "Updated By": "={{ $json['Updated By'] }}",
+            "Updated Date": "={{ $json['Updated Date'] }}"
+          },
+          "matchingColumns": [
+            "KPI Name"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8260dcbb-9751-4520-8b48-eeb56cbc8443",
+      "name": "Append or update row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        432,
+        -304
+      ],
+      "typeVersion": 4.7,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "yes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyGVKc_6I5Q2cqoKGq-ifdPvdKRMZZpn_EVybRuPa_8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Process": "={{ $json.Process }}",
+            "Responsible": "={{ $json.Responsible }}",
+            "Accountable": "={{ $json.Accountable }}",
+            "Consulted": "={{ $json.Consulted }}",
+            "Informed": "={{ $json.Informed }}",
+            "Automation Level": "={{ $json['Automation Level'] }}",
+            "Tools Used": "={{ $json['Tools Used'] }}",
+            "Updated By": "={{ $json['Updated By'] }}",
+            "Updated Date": "={{ $json['Updated Date'] }}"
+          },
+          "matchingColumns": [
+            "Process"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "95f7a66c-27cc-4991-b63c-6c0a9ac641cb",
+      "name": "Write New RACI to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        208,
+        -96
+      ],
+      "typeVersion": 4.7,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HSKZd2nGiLCRcvQ9",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a senior management consultant writing concise, C-suite ready report sections for an AI operating model transformation.",
+              "role": "system"
+            },
+            {
+              "content": "=Client: {{ $('Set Client Config').first().json.client_name }}\nSector: {{ $('Set Client Config').first().json.sector }}\nMaturity stage: {{ $('Set Client Config').first().json.maturity_stage }}\n\nOperating model blueprint insight:\n{{ $('3.1 Blueprint Generator - GPT-4o').first().json.message?.content }}\n\nHybrid ROI figures for reference:\nThree year ROI: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.three_year_roi }} percent\nAnnual savings: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.annual_saving }}\nImplementation cost: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.implementation_cost }}\nPayback period: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.payback_period_months }} months\nFTE optimisation: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.fte_saved }}\nEfficiency gain: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.efficiency_gain_pct }} percent\n\nWrite Section 1 Executive Overview and Section 4 Financial Analysis and ROI for an AI enabled operating model report for this client.\n\nUse these headings in order:\n1.1 Situation analysis\n1.2 Transformation opportunity\n1.3 Recommended approach\n1.4 Expected business impact\n4.1 Investment required\n4.2 Expected benefits\n4.3 ROI scenarios\n4.4 Recommendation hybrid scenario\n\nKeep paragraphs short. Use clear bullet lists where helpful.\nLimit length to about 700 words in total.",
+              "role": "user"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 1500,
+          "temperature": 0.3
+        }
+      },
+      "id": "a5cb9026-121e-42e7-9b97-099aa7d9a078",
+      "name": "3.4a Exec Overview",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        656,
+        -448
+      ],
+      "typeVersion": 1.7,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a senior management consultant summarising operating model maturity and inefficiencies for a C-suite audience."
+            },
+            {
+              "content": "=Client: {{ $('Set Client Config').first().json.client_name }}\nMaturity stage: {{ $('Set Client Config').first().json.maturity_stage }}\n\nInefficiency analysis from a previous model run:\n{{ $('2.2 Inefficiency Scorer - GPT-4o').first().json.message?.content }}\n\nWrite Section 2 Current State Assessment for the AI operating model report.\n\nStructure:\n2.1 Operating model maturity\n2.2 Key inefficiencies and pain points\n2.3 Cost of inaction\n\nDescribe 5 to 7 core inefficiencies. For each one, include:\nDescription\nImpact in business terms\nLikely root cause\nUrgency\n\nSummarise cost of inaction over one and three years using qualitative ranges if exact numbers are unclear.\nTarget length about 600 words.",
+              "role": "user"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "options": {
+          "maxTokens": 1500,
+          "temperature": 0.3
+        }
+      },
+      "id": "b6f7bbc6-4f4d-4a89-b476-65c7c1014e6b",
+      "name": "3.4b Current State",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1008,
+        -448
+      ],
+      "typeVersion": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a senior management consultant designing a future state AI operating model and phased roadmap"
+            },
+            {
+              "content": "=Client: {{ $('Set Client Config').first().json.client_name }}\nSector: {{ $('Set Client Config').first().json.sector }}\n\nAI recommendations from a previous model run:\n{{ $('2.3 AI Fit Mapper - GPT-4o').first().json.message?.content }}\n\nHybrid ROI reference values:\nThree year ROI: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.three_year_roi }} percent\nAnnual savings: {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.annual_saving }}\n\nWrite Sections 3 and 5 of the report.\n\nUse these headings:\n3.1 AI enabled operating model overview\n3.2 Core capabilities enabled\n3.3 AI agents and automation architecture\n3.4 n8n workflow automation\n3.5 New RACI matrix\n5.1 Phase 1 Quick wins\n5.2 Phase 2 Foundation\n5.3 Phase 3 Scale\n5.4 Phase 4 Optimise\n\nInclude:\nNamed example agents with responsibilities, triggers and human touchpoints.\nExample n8n workflows, each with purpose, trigger and connected systems.\nA realistic phased roadmap across 0 to 24 months.\n\nTarget length about 800 words.",
+              "role": "user"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "options": {
+          "maxTokens": 1500,
+          "temperature": 0.3
+        }
+      },
+      "id": "097c29e9-72e0-471c-a0fe-a9a178c80768",
+      "name": "3.4c Future State & Roadmap",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1360,
+        -448
+      ],
+      "typeVersion": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a senior management consultant defining risks, governance and next steps for an AI transformation."
+            },
+            {
+              "content": "=Use everything you know from the earlier sections for this client, but do not repeat their content.\n\nWrite Sections 6, 7 and 8 of the report.\n\nHeadings:\n6.1 Key risks\n6.2 Mitigation strategies\n7.1 Program governance\n7.2 Success metrics and KPIs\n8.1 Immediate actions next 30 days\n8.2 Decision points\n8.3 Timeline to value\n\nProvide:\nThree to five risks under technical, organisational, operational and external categories with clear mitigations.\nA simple governance model with steering group, working group and decision rights.\nEight to ten KPIs across financial, operational, adoption and strategic dimensions.\nA concrete 30 day action plan and key decisions.\n\nLimit length to about 500 words.",
+              "role": "user"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "options": {
+          "maxTokens": 1500,
+          "temperature": 0.3
+        }
+      },
+      "id": "8ca6f9d9-6e69-4e2e-88f2-0bc6fb1b9aca",
+      "name": "4d Governance, Risks, Next Steps",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1712,
+        -448
+      ],
+      "typeVersion": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "sHNKcTxbhPX7Z73K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const parts = [];\\n\\nparts.push($('3.4a Exec Overview').first().json.message?.content || '');\\nparts.push($('3.4b Current State').first().json.message?.content || '');\\nparts.push($('3.4c Future State & Roadmap').first().json.message?.content || '');\\nparts.push($('4d Governance, Risks, Next Steps').first().json.message?.content || '');\\n\\nconst fullReport = parts.map((p) => String(p).trim()).filter((p) => p.length > 0).join('\\n\\n');\\n\\nreturn [{ json: { content: fullReport } }];\\n"
+      },
+      "id": "f93cb1ac-0e27-4106-a284-ff9cb97aa968",
+      "name": "3.4e Executive Summary Assembler",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2064,
+        -448
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const execSummary = $('3.4e Executive Summary Assembler').first().json.content;\\nconst clientName = $('Set Client Config').first().json.client_name;\\nconst auditId = $('2.1 Data Cleaner').first().json.audit_id;\\n\\nconst content = `${clientName} - AI Operating Model Transformation\\nExecutive Summary & Transformation Roadmap\\nGenerated: ${new Date().toLocaleDateString()}\\nAudit ID: ${auditId}\\n\\n${'='.repeat(80)}\\n\\n${execSummary}\\n\\n${'='.repeat(80)}\\n\\nConfidential | AI Strategy & Operations\\nPowered by n8n Workflow Automation\\n`;\\n\\nreturn [{\\n  json: {\\n    client_name: clientName,\\n    audit_id: auditId,\\n    content: execSummary\\n  },\\n  binary: {\\n    data: {\\n      data: Buffer.from(content).toString('base64'),\\n      mimeType: 'text/plain',\\n      fileName: `${clientName}_AI_Operating_Model_${auditId}.txt`\\n    }\\n  }\\n}];"
+      },
+      "id": "e52ef3aa-ed0d-4841-a306-bb9c91ac1f4d",
+      "name": "Generate Professional Report",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2288,
+        -288
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.binary.data.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "value": "1ecFCQPJIxS7pwmswxfHvnLqGe3garKlb",
+          "mode": "id"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1ecFCQPJIxS7pwmswxfHvnLqGe3garKlb",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "1db4a63c-a2b5-472e-8092-2408a9a32057",
+      "name": "Upload file",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        2512,
+        -352
+      ],
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HGcwinsAHvFxWc4L",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08L7PQ55UZ",
+          "mode": "list",
+          "cachedResultName": "general"
+        },
+        "text": "=\ud83c\udfaf *AI Operating Model Audit Complete*\n\n*Client:* {{ $('Set Client Config').first().json.client_name }}\n*Audit ID:* {{ $('2.1 Data Cleaner').first().json.audit_id }}\n*Date:* {{ $now.format('yyyy-MM-dd HH:mm') }}\n\n\u2705 *Financial Impact (Hybrid Scenario - Recommended):*\n\u2022 3-Year ROI: *{{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.three_year_roi }}%*\n\u2022 Annual Savings: *${{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.annual_saving.toLocaleString() }}*\n\u2022 FTE Optimization: *{{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.fte_saved }} FTEs*\n\u2022 Payback Period: *{{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.payback_period_months }} months*\n\u2022 Efficiency Gain: *{{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.efficiency_gain_pct }}%*\n\n\ud83e\udd16 *AI & Automation Strategy:*\n\u2022 AI Agents: Content Generation, QA, Localization\n\u2022 n8n Workflows: 15+ automation opportunities\n\u2022 Production Studio: Core platform integration\n\u2022 Tech Consolidation: Reduce tool count significantly\n\n\ud83d\udcca *Deliverables:*\n\u2022 Executive Summary\n\u2022 Complete Operating Model Blueprint\n\u2022 ROI Analysis (3 scenarios)\n\u2022 Visual Diagrams\n\u2022 New RACI Matrix\n\u2022 Agent Specifications\n\n\ud83d\ude80 *Next Steps:*\n1. Review detailed findings\n2. Schedule executive presentation\n3. Begin Phase 1 quick wins\n\n_AI-powered analysis complete!_",
+        "otherOptions": {}
+      },
+      "id": "1cfefa7c-de1c-407b-9f6b-f94185cad902",
+      "name": "4.3 Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        2736,
+        -160
+      ],
+      "typeVersion": 2.2,
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "y3BY0QNsUHy5B2Pf",
+          "name": "Slack N8N OUTH2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mrchspence@gmail.com",
+        "subject": "=AI Operating Model Audit Complete - {{ $('Set Client Config').first().json.client_name }}",
+        "message": "=<h2>\ud83c\udfaf AI Operating Model Audit Complete</h2>\n\n<p><strong>Client:</strong> {{ $('Set Client Config').first().json.client_name }}<br>\n<strong>Audit ID:</strong> {{ $('2.1 Data Cleaner').first().json.audit_id }}<br>\n<strong>Date:</strong> {{ $now.format('yyyy-MM-dd HH:mm') }}</p>\n\n<h3>\u2705 Financial Impact (Hybrid Scenario - Recommended):</h3>\n<ul>\n  <li><strong>3-Year ROI:</strong> {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.three_year_roi }}%</li>\n  <li><strong>Annual Savings:</strong> ${{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.annual_saving }}</li>\n  <li><strong>FTE Saved:</strong> {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.fte_saved }}</li>\n  <li><strong>Payback Period:</strong> {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.payback_period_months }} months</li>\n  <li><strong>Efficiency Gain:</strong> {{ $('3.2 ROI Simulator (3 Scenarios)').first().json.scenarios.hybrid.efficiency_gain_pct }}%</li>\n</ul>\n\n<h3>\ud83e\udd16 AI & Automation Strategy:</h3>\n<ul>\n  <li><strong>AI Agents:</strong> Content Generation, QA, Localization</li>\n  <li><strong>n8n Workflows:</strong> 15+ automation opportunities</li>\n  <li><strong>Production Studio:</strong> Core platform integration</li>\n  <li><strong>Tech Consolidation:</strong> Reduce tool count significantly</li>\n</ul>\n\n<h3>\ud83d\udcca Deliverables:</h3>\n<ul>\n  <li>Executive Summary</li>\n  <li>Complete Operating Model Blueprint</li>\n  <li>ROI Analysis (3 scenarios)</li>\n  <li>Visual Diagrams</li>\n  <li>New RACI Matrix</li>\n  <li>Agent Specifications</li>\n</ul>\n\n<h3>\ud83d\ude80 Next Steps:</h3>\n<ol>\n  <li>Review detailed findings in Google Docs</li>\n  <li>Schedule executive presentation</li>\n  <li>Begin Phase 1 quick wins</li>\n</ol>\n\n<p><em>AI-powered analysis complete!</em></p>\n\n<hr>\n<p style=\"color: #666; font-size: 12px;\">This email was sent automatically with n8n Workflow Automation</p>",
+        "options": {
+          "appendAttribution": true
+        }
+      },
+      "id": "afe96d4f-fe65-48f7-8260-906e58d39c1d",
+      "name": "4.4 Send Email Notification",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        2736,
+        32
+      ],
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xuDVkeidMXEmsPib",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "creative_memory"
+      },
+      "id": "72042e2c-d56e-48c7-876d-588f558fe103",
+      "name": "5.1 Store in Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "position": [
+        2960,
+        -160
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "LQrRbDHg28uKLFJW",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "creative_memory"
+      },
+      "id": "6155e317-e3e8-4b87-803c-f75325964da7",
+      "name": "5.3 Store Patterns in Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "position": [
+        3408,
+        -160
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "LQrRbDHg28uKLFJW",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9GhYKsi4g8xvndHd",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/9GhYKsi4g8xvndHd",
+          "cachedResultName": "*MCP_Controller main"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {
+          "waitForSubWorkflow": "={{ true }}"
+        }
+      },
+      "id": "a9f39a94-56ba-4685-8c45-297df08b244f",
+      "name": "Call '*MCP_Controller main'",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "position": [
+        3632,
+        -160
+      ],
+      "typeVersion": 1.3
+    }
+  ],
+  "connections": {
+    "Manual Trigger - Start Audit": {
+      "main": [
+        [
+          {
+            "node": "Set Client Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Client Config": {
+      "main": [
+        [
+          {
+            "node": "1.1 Google Drive - Org Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.2 Google Sheets - RACI Matrix",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.3 Tool Inventory - API Call",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.4 KPI Snapshot - Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1.1 Google Drive - Org Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Discovery Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1.2 Google Sheets - RACI Matrix": {
+      "main": [
+        [
+          {
+            "node": "Merge Discovery Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "1.3 Tool Inventory - API Call": {
+      "main": [
+        [
+          {
+            "node": "Merge Discovery Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "1.4 KPI Snapshot - Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Merge Discovery Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Discovery Data": {
+      "main": [
+        [
+          {
+            "node": "2.1 Data Cleaner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.1 Data Cleaner": {
+      "main": [
+        [
+          {
+            "node": "2.2 Inefficiency Scorer - GPT-4o",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "2.3 AI Fit Mapper - GPT-4o",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "2.4a Fetch Benchmark Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2 Inefficiency Scorer - GPT-4o": {
+      "main": [
+        [
+          {
+            "node": "Merge Analysis Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.3 AI Fit Mapper - GPT-4o": {
+      "main": [
+        [
+          {
+            "node": "Merge Analysis Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "2.4a Fetch Benchmark Data": {
+      "main": [
+        [
+          {
+            "node": "2.4b Benchmark Comparator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.4b Benchmark Comparator": {
+      "main": [
+        [
+          {
+            "node": "Merge Analysis Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Analysis Results": {
+      "main": [
+        [
+          {
+            "node": "3.1 Blueprint Generator - GPT-4o",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.1 Blueprint Generator - GPT-4o": {
+      "main": [
+        [
+          {
+            "node": "3.2 ROI Simulator (3 Scenarios)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "3.3 Visual Schema Builder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract New RACI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 ROI Simulator (3 Scenarios)": {
+      "main": [
+        [
+          {
+            "node": "Extract KPI Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract KPI Updates": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract New RACI": {
+      "main": [
+        [
+          {
+            "node": "Write New RACI to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "4.1b Write to Airtable - Recommendations",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Professional Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "3.4a Exec Overview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.3 Visual Schema Builder": {
+      "main": [
+        [
+          {
+            "node": "4.1a Write to Airtable - Models",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "4.1b Write to Airtable - Recommendations",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Professional Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1a Write to Airtable - Models": {
+      "main": [
+        [
+          {
+            "node": "4.3 Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1b Write to Airtable - Recommendations": {
+      "main": [
+        [
+          {
+            "node": "4.3 Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Professional Report": {
+      "main": [
+        [
+          {
+            "node": "4.4 Send Email Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "4.3 Send Slack Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.3 Send Slack Notification": {
+      "main": [
+        [
+          {
+            "node": "5.1 Store in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.4 Send Email Notification": {
+      "main": [
+        [
+          {
+            "node": "5.1 Store in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.1 Store in Supabase": {
+      "main": [
+        [
+          {
+            "node": "5.2 Pattern Learner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.2 Pattern Learner": {
+      "main": [
+        [
+          {
+            "node": "5.3 Store Patterns in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.3 Store Patterns in Supabase": {
+      "main": [
+        [
+          {
+            "node": "Call '*MCP_Controller main'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.4a Exec Overview": {
+      "main": [
+        [
+          {
+            "node": "3.4b Current State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.4b Current State": {
+      "main": [
+        [
+          {
+            "node": "3.4c Future State & Roadmap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.4c Future State & Roadmap": {
+      "main": [
+        [
+          {
+            "node": "4d Governance, Risks, Next Steps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4d Governance, Risks, Next Steps": {
+      "main": [
+        [
+          {
+            "node": "3.4e Executive Summary Assembler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.4e Executive Summary Assembler": {
+      "main": [
+        [
+          {
+            "node": "Generate Professional Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "pinData": {},
+  "meta": {}
+}
