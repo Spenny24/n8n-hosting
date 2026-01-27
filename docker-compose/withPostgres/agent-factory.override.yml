@@ -1,0 +1,16 @@
+services:
+  agent-factory-mcp:
+    build:
+      context: ../../services/agent-factory-mcp
+    env_file:
+      - ../../services/agent-factory-mcp/.env
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL-gpt-4.1-mini}
+    depends_on:
+      - n8n
+    networks:
+      - default
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
