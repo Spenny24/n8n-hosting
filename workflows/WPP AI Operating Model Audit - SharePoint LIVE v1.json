@@ -7,25 +7,64 @@
       "name": "Manual Trigger - Start Audit",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [220, 300]
+      "position": [
+        220,
+        300
+      ]
     },
     {
       "parameters": {
         "keepOnlySet": true,
         "values": {
           "string": [
-            { "name": "tenant_domain", "value": "hogarthww.sharepoint.com" },
-            { "name": "site_path", "value": "AppliedInnovationTribe" },
-            { "name": "library_folder_path", "value": "N8N Automation Test WIP" },
-            { "name": "workbook_name", "value": "Audit_Master_LIVE.xlsx" },
-            { "name": "queue_sheet_name", "value": "Clients_Queue" },
-            { "name": "raci_sheet_name", "value": "RACI" },
-            { "name": "tools_sheet_name", "value": "Tools" },
-            { "name": "kpi_sheet_name", "value": "KPI_Snapshot" },
-            { "name": "benchmarks_sheet_name", "value": "Benchmarks" },
-            { "name": "audit_master_table_name", "value": "Audit_Master" },
-            { "name": "raci_output_table_name", "value": "RACI_Output" },
-            { "name": "kpi_benchmarking_table_name", "value": "KPI_Benchmarking" }
+            {
+              "name": "tenant_domain",
+              "value": "hogarthww.sharepoint.com"
+            },
+            {
+              "name": "site_path",
+              "value": "AppliedInnovationTribe"
+            },
+            {
+              "name": "library_folder_path",
+              "value": "N8N Automation Test WIP"
+            },
+            {
+              "name": "workbook_name",
+              "value": "Audit_Master_LIVE.xlsx"
+            },
+            {
+              "name": "queue_sheet_name",
+              "value": "Clients_Queue"
+            },
+            {
+              "name": "raci_sheet_name",
+              "value": "RACI"
+            },
+            {
+              "name": "tools_sheet_name",
+              "value": "Tools"
+            },
+            {
+              "name": "kpi_sheet_name",
+              "value": "KPI_Snapshot"
+            },
+            {
+              "name": "benchmarks_sheet_name",
+              "value": "Benchmarks"
+            },
+            {
+              "name": "audit_master_table_name",
+              "value": "Audit_Master"
+            },
+            {
+              "name": "raci_output_table_name",
+              "value": "RACI_Output"
+            },
+            {
+              "name": "kpi_benchmarking_table_name",
+              "value": "KPI_Benchmarking"
+            }
           ]
         }
       },
@@ -33,7 +72,10 @@
       "name": "Set SharePoint Context",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -46,7 +88,10 @@
       "name": "Get SharePoint Site",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -62,7 +107,10 @@
       "name": "Build Site Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 300]
+      "position": [
+        900,
+        300
+      ]
     },
     {
       "parameters": {
@@ -75,7 +123,10 @@
       "name": "List Site Drives",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 300],
+      "position": [
+        1120,
+        300
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -91,7 +142,10 @@
       "name": "Pick SharePoint Drive",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 300]
+      "position": [
+        1340,
+        300
+      ]
     },
     {
       "parameters": {
@@ -104,7 +158,10 @@
       "name": "Get Workbook Metadata",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 300],
+      "position": [
+        1560,
+        300
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -120,7 +177,10 @@
       "name": "Build Workbook Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 300]
+      "position": [
+        1780,
+        300
+      ]
     },
     {
       "parameters": {
@@ -134,7 +194,10 @@
       "name": "Download Live Workbook",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2000, 300],
+      "position": [
+        2000,
+        300
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -155,7 +218,10 @@
       "name": "Read Client Queue",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [2240, 60]
+      "position": [
+        2240,
+        60
+      ]
     },
     {
       "parameters": {
@@ -170,7 +236,10 @@
       "name": "1.2 RACI Matrix",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [2240, 180]
+      "position": [
+        2240,
+        180
+      ]
     },
     {
       "parameters": {
@@ -185,7 +254,10 @@
       "name": "1.3 Tools Inventory",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [2240, 300]
+      "position": [
+        2240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -200,7 +272,10 @@
       "name": "1.4 KPI Snapshot",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [2240, 420]
+      "position": [
+        2240,
+        420
+      ]
     },
     {
       "parameters": {
@@ -215,7 +290,10 @@
       "name": "2.4a Benchmarks",
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
-      "position": [2240, 540]
+      "position": [
+        2240,
+        540
+      ]
     },
     {
       "parameters": {
@@ -225,7 +303,10 @@
       "name": "Select Active Client Queue Row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2480, 60]
+      "position": [
+        2480,
+        60
+      ]
     },
     {
       "parameters": {
@@ -235,7 +316,10 @@
       "name": "Dynamic Client Config",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2720, 60]
+      "position": [
+        2720,
+        60
+      ]
     },
     {
       "parameters": {
@@ -245,7 +329,10 @@
       "name": "Build Queue PROCESSING Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2960, 60]
+      "position": [
+        2960,
+        60
+      ]
     },
     {
       "parameters": {
@@ -262,7 +349,10 @@
       "name": "Update Queue Status PROCESSING",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3200, 60],
+      "position": [
+        3200,
+        60
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -272,13 +362,16 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $('Dynamic Client Config').first().json;\nconst raci = $('1.2 RACI Matrix').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\nconst tools = $('1.3 Tools Inventory').all().map(i => i.json);\nconst kpis = $('1.4 KPI Snapshot').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\nconst benchmarks = $('2.4a Benchmarks').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\n\nconst audit_id = cfg.audit_id;\nconst now = new Date().toISOString();\nconst run_id = `RUN-${audit_id}-${Date.now()}`;\n\nfunction pick(obj, keys, fallback = '') {\n  for (const key of keys) {\n    if (obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') return obj[key];\n  }\n  return fallback;\n}\n\nconst raciOutput = raci.map((r, idx) => ({\n  row_id: `${audit_id}-RACI-${idx + 1}`,\n  audit_id,\n  process: pick(r, ['process', 'Process']),\n  responsible: pick(r, ['responsible', 'Responsible']),\n  accountable: pick(r, ['accountable', 'Accountable']),\n  consulted: pick(r, ['consulted', 'Consulted']),\n  tools_used: pick(r, ['tools_used', 'Tools_Used', 'tool', 'Tool']),\n  automation_level: pick(r, ['automation_level', 'Automation_Level']),\n  informed: pick(r, ['informed', 'Informed']),\n  notes: pick(r, ['notes', 'Notes']),\n  created_at: now\n}));\n\nconst benchmarkMap = new Map();\nfor (const b of benchmarks) {\n  const metric = String(pick(b, ['metric', 'Metric'])).trim().toLowerCase();\n  if (!metric) continue;\n  benchmarkMap.set(metric, b);\n}\n\nfunction toNum(v) {\n  if (v === null || v === undefined || v === '') return null;\n  const n = Number(String(v).replace(/[^0-9.\\-]/g, ''));\n  return Number.isFinite(n) ? n : null;\n}\n\nconst kpiBenchmarking = kpis.map((k, idx) => {\n  const metric = pick(k, ['metric', 'Metric']);\n  const key = String(metric).trim().toLowerCase();\n  const b = benchmarkMap.get(key) || {};\n  const clientValue = toNum(pick(k, ['value', 'Value']));\n  const industryAvg = toNum(pick(b, ['industry_avg', 'Industry_Avg', 'avg', 'Average']));\n  const bestInClass = toNum(pick(b, ['best_in_class', 'Best_In_Class']));\n  const direction = pick(k, ['direction', 'Direction'], pick(b, ['direction', 'Direction'], 'HIGHER_IS_BETTER'));\n  const unit = pick(k, ['unit', 'Unit'], pick(b, ['unit', 'Unit']));\n\n  let gapVsAvgPct = '';\n  if (clientValue !== null && industryAvg !== null && industryAvg !== 0) {\n    gapVsAvgPct = (((clientValue - industryAvg) / industryAvg) * 100).toFixed(2);\n  }\n\n  let status = 'NO_BENCHMARK';\n  if (industryAvg !== null && clientValue !== null) {\n    if (String(direction).toUpperCase() === 'LOWER_IS_BETTER') {\n      status = clientValue <= industryAvg ? 'ON_TRACK' : 'GAP';\n    } else {\n      status = clientValue >= industryAvg ? 'ON_TRACK' : 'GAP';\n    }\n  }\n\n  return {\n    row_id: `${audit_id}-KPI-${idx + 1}`,\n    audit_id,\n    client_name: cfg.client_name,\n    sector: cfg.sector,\n    metric,\n    client_value: pick(k, ['value', 'Value']),\n    industry_avg: industryAvg ?? pick(b, ['industry_avg', 'Industry_Avg', 'avg', 'Average'], ''),\n    best_in_class: bestInClass ?? pick(b, ['best_in_class', 'Best_In_Class'], ''),\n    direction,\n    unit,\n    gap_vs_avg_pct: gapVsAvgPct,\n    status,\n    opportunity_value: '',\n    created_at: now\n  };\n});\n\nconst totalBaselineDays = 100;\nconst totalOrchestratedDays = 70;\nconst totalReductionPct = 30;\nconst totalOpportunityValue = '';\nconst overallStatus = 'COMPLETED';\n\nconst execSummaryMd = [\n  `Client: ${cfg.client_name}`,\n  `Audit ID: ${audit_id}`,\n  `Sector: ${cfg.sector}`,\n  `Maturity Stage: ${cfg.maturity_stage}`,\n  `RACI rows: ${raciOutput.length}`,\n  `KPI rows: ${kpiBenchmarking.length}`,\n  `Generated at: ${now}`\n].join('\\n');\n\nconst auditReportTxt = [\n  `AI Operating Model Audit`,\n  `Client: ${cfg.client_name}`,\n  `Audit ID: ${audit_id}`,\n  `Sector: ${cfg.sector}`,\n  `Maturity Stage: ${cfg.maturity_stage}`,\n  `RACI output count: ${raciOutput.length}`,\n  `KPI benchmarking count: ${kpiBenchmarking.length}`,\n  `Tools input count: ${tools.length}`,\n  `Run timestamp: ${now}`\n].join('\\n');\n\nconst reportUrlPlaceholder = `${cfg.gdrive_folder_id}/${cfg.client_name.replace(/\\s+/g, '_')}__AI_Operating_Model_AUDIT__${audit_id}.txt`;\n\nconst auditMasterRow = {\n  row_id: `${audit_id}-MASTER-1`,\n  audit_id,\n  client_name: cfg.client_name,\n  sector: cfg.sector,\n  maturity_stage: cfg.maturity_stage,\n  run_timestamp: now,\n  total_baseline_days: totalBaselineDays,\n  total_orchestrated_days: totalOrchestratedDays,\n  total_reduction_pct: totalReductionPct,\n  total_opportunity_value: totalOpportunityValue,\n  overall_status: overallStatus,\n  notes: '',\n  run_id,\n  report_url: reportUrlPlaceholder,\n  recommended_scenario: 'BASELINE',\n  npv: '',\n  irr: '',\n  recommendations_count: kpiBenchmarking.filter(x => x.status === 'GAP').length,\n  raci_count: raciOutput.length,\n  created_at: now\n};\n\nreturn [{\n  json: {\n    audit_id,\n    run_id,\n    now,\n    client_name: cfg.client_name,\n    sector: cfg.sector,\n    maturity_stage: cfg.maturity_stage,\n    gdrive_folder_id: cfg.gdrive_folder_id,\n    auditMasterRow,\n    raciOutput,\n    kpiBenchmarking,\n    exec_summary_md: execSummaryMd,\n    audit_report_txt: auditReportTxt\n  }\n}];"
+        "jsCode": "const cfg = $('Dynamic Client Config').first().json;\nconst sp = $('Set SharePoint Context').first().json;\nconst raci = $('1.2 RACI Matrix').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\nconst tools = $('1.3 Tools Inventory').all().map(i => i.json);\nconst kpis = $('1.4 KPI Snapshot').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\nconst benchmarks = $('2.4a Benchmarks').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\n\nconst audit_id = cfg.audit_id;\nconst now = new Date().toISOString();\nconst run_id = `RUN-${audit_id}-${Date.now()}`;\n\nfunction pick(obj, keys, fallback = '') {\n  for (const key of keys) {\n    if (obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') return obj[key];\n  }\n  return fallback;\n}\n\nconst raciOutput = raci.map((r, idx) => ({\n  row_id: `${audit_id}-RACI-${idx + 1}`,\n  audit_id,\n  process: pick(r, ['process', 'Process']),\n  responsible: pick(r, ['responsible', 'Responsible']),\n  accountable: pick(r, ['accountable', 'Accountable']),\n  consulted: pick(r, ['consulted', 'Consulted']),\n  tools_used: pick(r, ['tools_used', 'Tools_Used', 'tool', 'Tool']),\n  automation_level: pick(r, ['automation_level', 'Automation_Level']),\n  informed: pick(r, ['informed', 'Informed']),\n  notes: pick(r, ['notes', 'Notes']),\n  created_at: now\n}));\n\nconst benchmarkMap = new Map();\nfor (const b of benchmarks) {\n  const metric = String(pick(b, ['metric', 'Metric'])).trim().toLowerCase();\n  if (!metric) continue;\n  benchmarkMap.set(metric, b);\n}\n\nfunction toNum(v) {\n  if (v === null || v === undefined || v === '') return null;\n  const n = Number(String(v).replace(/[^0-9.\\-]/g, ''));\n  return Number.isFinite(n) ? n : null;\n}\n\nconst kpiBenchmarking = kpis.map((k, idx) => {\n  const metric = pick(k, ['metric', 'Metric']);\n  const key = String(metric).trim().toLowerCase();\n  const b = benchmarkMap.get(key) || {};\n  const clientValue = toNum(pick(k, ['value', 'Value']));\n  const industryAvg = toNum(pick(b, ['industry_avg', 'Industry_Avg', 'avg', 'Average']));\n  const bestInClass = toNum(pick(b, ['best_in_class', 'Best_In_Class']));\n  const direction = pick(k, ['direction', 'Direction'], pick(b, ['direction', 'Direction'], 'HIGHER_IS_BETTER'));\n  const unit = pick(k, ['unit', 'Unit'], pick(b, ['unit', 'Unit']));\n\n  let gapVsAvgPct = '';\n  if (clientValue !== null && industryAvg !== null && industryAvg !== 0) {\n    gapVsAvgPct = (((clientValue - industryAvg) / industryAvg) * 100).toFixed(2);\n  }\n\n  let status = 'NO_BENCHMARK';\n  if (industryAvg !== null && clientValue !== null) {\n    if (String(direction).toUpperCase() === 'LOWER_IS_BETTER') {\n      status = clientValue <= industryAvg ? 'ON_TRACK' : 'GAP';\n    } else {\n      status = clientValue >= industryAvg ? 'ON_TRACK' : 'GAP';\n    }\n  }\n\n  return {\n    row_id: `${audit_id}-KPI-${idx + 1}`,\n    audit_id,\n    client_name: cfg.client_name,\n    sector: cfg.sector,\n    metric,\n    client_value: pick(k, ['value', 'Value']),\n    industry_avg: industryAvg ?? pick(b, ['industry_avg', 'Industry_Avg', 'avg', 'Average'], ''),\n    best_in_class: bestInClass ?? pick(b, ['best_in_class', 'Best_In_Class'], ''),\n    direction,\n    unit,\n    gap_vs_avg_pct: gapVsAvgPct,\n    status,\n    opportunity_value: '',\n    created_at: now\n  };\n});\n\nconst totalBaselineDays = 100;\nconst totalOrchestratedDays = 70;\nconst totalReductionPct = 30;\nconst totalOpportunityValue = '';\nconst overallStatus = 'COMPLETED';\n\nconst execSummaryMd = [\n  `Client: ${cfg.client_name}`,\n  `Audit ID: ${audit_id}`,\n  `Sector: ${cfg.sector}`,\n  `Maturity Stage: ${cfg.maturity_stage}`,\n  `RACI rows: ${raciOutput.length}`,\n  `KPI rows: ${kpiBenchmarking.length}`,\n  `Generated at: ${now}`\n].join('\\n');\n\nconst auditReportTxt = [\n  `AI Operating Model Audit`,\n  `Client: ${cfg.client_name}`,\n  `Audit ID: ${audit_id}`,\n  `Sector: ${cfg.sector}`,\n  `Maturity Stage: ${cfg.maturity_stage}`,\n  `RACI output count: ${raciOutput.length}`,\n  `KPI benchmarking count: ${kpiBenchmarking.length}`,\n  `Tools input count: ${tools.length}`,\n  `Run timestamp: ${now}`\n].join('\\n');\n\nconst reportFileName = `${cfg.client_name.replace(/\\s+/g, '_')}__AI_Operating_Model_AUDIT__${audit_id}.txt`;\nconst optionalClientFolder = cfg.gdrive_folder_id ? `/${encodeURIComponent(cfg.gdrive_folder_id)}` : '';\nconst reportUrlPlaceholder = `https://${sp.tenant_domain}/sites/${encodeURIComponent(sp.site_path)}/${encodeURIComponent(sp.library_folder_path)}${optionalClientFolder}/${encodeURIComponent(reportFileName)}`;\n\nconst auditMasterRow = {\n  row_id: `${audit_id}-MASTER-1`,\n  audit_id,\n  client_name: cfg.client_name,\n  sector: cfg.sector,\n  maturity_stage: cfg.maturity_stage,\n  run_timestamp: now,\n  total_baseline_days: totalBaselineDays,\n  total_orchestrated_days: totalOrchestratedDays,\n  total_reduction_pct: totalReductionPct,\n  total_opportunity_value: totalOpportunityValue,\n  overall_status: overallStatus,\n  notes: '',\n  run_id,\n  report_url: reportUrlPlaceholder,\n  recommended_scenario: 'BASELINE',\n  npv: '',\n  irr: '',\n  recommendations_count: kpiBenchmarking.filter(x => x.status === 'GAP').length,\n  raci_count: raciOutput.length,\n  created_at: now\n};\n\nreturn [{\n  json: {\n    audit_id,\n    run_id,\n    now,\n    client_name: cfg.client_name,\n    sector: cfg.sector,\n    maturity_stage: cfg.maturity_stage,\n    gdrive_folder_id: cfg.gdrive_folder_id,\n    auditMasterRow,\n    raciOutput,\n    kpiBenchmarking,\n    exec_summary_md: execSummaryMd,\n    audit_report_txt: auditReportTxt\n  }\n}];"
       },
       "id": "19",
       "name": "Compose Audit Outputs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2480, 260]
+      "position": [
+        2480,
+        260
+      ]
     },
     {
       "parameters": {
@@ -288,7 +381,10 @@
       "name": "Build Audit_Master Write Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2720, 260]
+      "position": [
+        2720,
+        260
+      ]
     },
     {
       "parameters": {
@@ -305,7 +401,10 @@
       "name": "Write Audit_Master",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2960, 260],
+      "position": [
+        2960,
+        260
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -321,7 +420,10 @@
       "name": "Build RACI Output Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2720, 380]
+      "position": [
+        2720,
+        380
+      ]
     },
     {
       "parameters": {
@@ -338,7 +440,10 @@
       "name": "Write RACI Output",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2960, 380],
+      "position": [
+        2960,
+        380
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -354,7 +459,10 @@
       "name": "Build KPI Benchmarking Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2720, 500]
+      "position": [
+        2720,
+        500
+      ]
     },
     {
       "parameters": {
@@ -371,7 +479,10 @@
       "name": "Write KPI Benchmarking",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2960, 500],
+      "position": [
+        2960,
+        500
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -387,7 +498,10 @@
       "name": "Create Exec Summary File",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2480, 660]
+      "position": [
+        2480,
+        660
+      ]
     },
     {
       "parameters": {
@@ -397,7 +511,10 @@
       "name": "Create Audit Report File",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2480, 780]
+      "position": [
+        2480,
+        780
+      ]
     },
     {
       "parameters": {
@@ -413,7 +530,10 @@
       "name": "Upload Exec Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2720, 660],
+      "position": [
+        2720,
+        660
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -435,7 +555,10 @@
       "name": "Upload Audit Report",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2720, 780],
+      "position": [
+        2720,
+        780
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -451,7 +574,10 @@
       "name": "Wait For All Writes",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [3200, 440]
+      "position": [
+        3200,
+        440
+      ]
     },
     {
       "parameters": {
@@ -461,7 +587,10 @@
       "name": "Build Queue COMPLETED Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3440, 440]
+      "position": [
+        3440,
+        440
+      ]
     },
     {
       "parameters": {
@@ -478,7 +607,10 @@
       "name": "Update Queue Status COMPLETED",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3680, 440],
+      "position": [
+        3680,
+        440
+      ],
       "credentials": {
         "microsoftOAuth2Api": {
           "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -494,205 +626,352 @@
       "name": "Final Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3920, 440]
+      "position": [
+        3920,
+        440
+      ]
     }
   ],
   "connections": {
     "Manual Trigger - Start Audit": {
       "main": [
         [
-          { "node": "Set SharePoint Context", "type": "main", "index": 0 }
+          {
+            "node": "Set SharePoint Context",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Set SharePoint Context": {
       "main": [
         [
-          { "node": "Get SharePoint Site", "type": "main", "index": 0 }
+          {
+            "node": "Get SharePoint Site",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Get SharePoint Site": {
       "main": [
         [
-          { "node": "Build Site Context", "type": "main", "index": 0 }
+          {
+            "node": "Build Site Context",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Site Context": {
       "main": [
         [
-          { "node": "List Site Drives", "type": "main", "index": 0 }
+          {
+            "node": "List Site Drives",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "List Site Drives": {
       "main": [
         [
-          { "node": "Pick SharePoint Drive", "type": "main", "index": 0 }
+          {
+            "node": "Pick SharePoint Drive",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Pick SharePoint Drive": {
       "main": [
         [
-          { "node": "Get Workbook Metadata", "type": "main", "index": 0 }
+          {
+            "node": "Get Workbook Metadata",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Get Workbook Metadata": {
       "main": [
         [
-          { "node": "Build Workbook Context", "type": "main", "index": 0 }
+          {
+            "node": "Build Workbook Context",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Workbook Context": {
       "main": [
         [
-          { "node": "Download Live Workbook", "type": "main", "index": 0 }
+          {
+            "node": "Download Live Workbook",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Download Live Workbook": {
       "main": [
         [
-          { "node": "Read Client Queue", "type": "main", "index": 0 },
-          { "node": "1.2 RACI Matrix", "type": "main", "index": 0 },
-          { "node": "1.3 Tools Inventory", "type": "main", "index": 0 },
-          { "node": "1.4 KPI Snapshot", "type": "main", "index": 0 },
-          { "node": "2.4a Benchmarks", "type": "main", "index": 0 }
+          {
+            "node": "Read Client Queue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.2 RACI Matrix",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.3 Tools Inventory",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.4 KPI Snapshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "2.4a Benchmarks",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Read Client Queue": {
       "main": [
         [
-          { "node": "Select Active Client Queue Row", "type": "main", "index": 0 }
+          {
+            "node": "Select Active Client Queue Row",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Select Active Client Queue Row": {
       "main": [
         [
-          { "node": "Dynamic Client Config", "type": "main", "index": 0 }
+          {
+            "node": "Dynamic Client Config",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Dynamic Client Config": {
       "main": [
         [
-          { "node": "Build Queue PROCESSING Payload", "type": "main", "index": 0 },
-          { "node": "Compose Audit Outputs", "type": "main", "index": 0 }
+          {
+            "node": "Build Queue PROCESSING Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Compose Audit Outputs",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Queue PROCESSING Payload": {
       "main": [
         [
-          { "node": "Update Queue Status PROCESSING", "type": "main", "index": 0 }
+          {
+            "node": "Update Queue Status PROCESSING",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Compose Audit Outputs": {
       "main": [
         [
-          { "node": "Build Audit_Master Write Payload", "type": "main", "index": 0 },
-          { "node": "Build RACI Output Payload", "type": "main", "index": 0 },
-          { "node": "Build KPI Benchmarking Payload", "type": "main", "index": 0 },
-          { "node": "Create Exec Summary File", "type": "main", "index": 0 },
-          { "node": "Create Audit Report File", "type": "main", "index": 0 }
+          {
+            "node": "Build Audit_Master Write Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build RACI Output Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build KPI Benchmarking Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Exec Summary File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Audit Report File",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Audit_Master Write Payload": {
       "main": [
         [
-          { "node": "Write Audit_Master", "type": "main", "index": 0 }
+          {
+            "node": "Write Audit_Master",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build RACI Output Payload": {
       "main": [
         [
-          { "node": "Write RACI Output", "type": "main", "index": 0 }
+          {
+            "node": "Write RACI Output",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build KPI Benchmarking Payload": {
       "main": [
         [
-          { "node": "Write KPI Benchmarking", "type": "main", "index": 0 }
+          {
+            "node": "Write KPI Benchmarking",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Create Exec Summary File": {
       "main": [
         [
-          { "node": "Upload Exec Summary", "type": "main", "index": 0 }
+          {
+            "node": "Upload Exec Summary",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Create Audit Report File": {
       "main": [
         [
-          { "node": "Upload Audit Report", "type": "main", "index": 0 }
+          {
+            "node": "Upload Audit Report",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Write Audit_Master": {
       "main": [
         [
-          { "node": "Wait For All Writes", "type": "main", "index": 0 }
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Write RACI Output": {
       "main": [
         [
-          { "node": "Wait For All Writes", "type": "main", "index": 1 }
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
         ]
       ]
     },
     "Write KPI Benchmarking": {
       "main": [
         [
-          { "node": "Wait For All Writes", "type": "main", "index": 1 }
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
         ]
       ]
     },
     "Upload Exec Summary": {
       "main": [
         [
-          { "node": "Wait For All Writes", "type": "main", "index": 1 }
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
         ]
       ]
     },
     "Upload Audit Report": {
       "main": [
         [
-          { "node": "Wait For All Writes", "type": "main", "index": 1 }
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
         ]
       ]
     },
     "Wait For All Writes": {
       "main": [
         [
-          { "node": "Build Queue COMPLETED Payload", "type": "main", "index": 0 }
+          {
+            "node": "Build Queue COMPLETED Payload",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Queue COMPLETED Payload": {
       "main": [
         [
-          { "node": "Update Queue Status COMPLETED", "type": "main", "index": 0 }
+          {
+            "node": "Update Queue Status COMPLETED",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Update Queue Status COMPLETED": {
       "main": [
         [
-          { "node": "Final Payload", "type": "main", "index": 0 }
+          {
+            "node": "Final Payload",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -707,9 +986,17 @@
     "templateCredsSetupCompleted": false
   },
   "tags": [
-    { "name": "WPP" },
-    { "name": "n8n" },
-    { "name": "SharePoint" },
-    { "name": "AI Operating Model" }
+    {
+      "name": "WPP"
+    },
+    {
+      "name": "n8n"
+    },
+    {
+      "name": "SharePoint"
+    },
+    {
+      "name": "AI Operating Model"
+    }
   ]
 }
