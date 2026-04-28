@@ -100,7 +100,7 @@ jobs:
         run: |
           echo "🐳 Validating ${{ matrix.config }}/docker-compose.yml..."
           cd ${{ matrix.config }}
-          docker-compose config > /dev/null
+          docker compose config > /dev/null
           echo "✅ Docker Compose config is valid"
 
   security-scan:
