@@ -29,8 +29,35 @@ jobs:
       - name: Check for credentials in workflows
         run: |
           echo "🔒 Checking for exposed credentials..."
-          if grep -r -i -E "(password|api_key|secret|token).*[:=].*[\"'][^\"']{10,}" --include="*.json" .; then
+          FOUND=0
+
+          # Match real secret value patterns — not variable names like OPENAI_API_KEY.
+          # Catches: OpenAI keys (sk-), Notion tokens (ntn_), Slack tokens (xoxb-/xoxp-),
+          # GitHub PATs (ghp_/github_pat_), JWTs (eyJ...), Airtable/generic PATs (pat...).
+          if grep -rn -E \
+            "sk-[a-zA-Z0-9]{20,}|ntn_[a-zA-Z0-9]{20,}|xoxb-[a-zA-Z0-9-]{20,}|xoxp-[a-zA-Z0-9-]{20,}|ghp_[a-zA-Z0-9]{20,}|github_pat_[a-zA-Z0-9_]{20,}|eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{5,}\.[a-zA-Z0-9_-]{5,}|pat[a-zA-Z0-9]{20,}" \
+            --include="*.json" \
+            --exclude="*.env.example" \
+            --exclude-dir=node_modules \
+            --exclude-dir=.git \
+            .; then
             echo "⚠️ WARNING: Possible credentials found in workflow files!"
+            FOUND=1
+          fi
+
+          # Detect hardcoded password fields — skip n8n template expressions (={{ ... }}).
+          if grep -rn -E \
+            '"(password|passwd|pwd)"\s*:\s*"[^=$\{\s][^"]{7,}"' \
+            --include="*.json" \
+            --exclude="*.env.example" \
+            --exclude-dir=node_modules \
+            --exclude-dir=.git \
+            .; then
+            echo "⚠️ WARNING: Possible hardcoded password found in workflow files!"
+            FOUND=1
+          fi
+
+          if [ "$FOUND" -eq 1 ]; then
             echo "Please use n8n's credential system instead of hardcoded values."
             exit 1
           fi
