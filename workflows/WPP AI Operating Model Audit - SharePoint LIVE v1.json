@@ -1,0 +1,1002 @@
+{
+  "name": "WPP AI Operating Model Audit - SharePoint LIVE v1",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Manual Trigger - Start Audit",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "tenant_domain",
+              "value": "hogarthww.sharepoint.com"
+            },
+            {
+              "name": "site_path",
+              "value": "AppliedInnovationTribe"
+            },
+            {
+              "name": "library_folder_path",
+              "value": "N8N Automation Test WIP"
+            },
+            {
+              "name": "workbook_name",
+              "value": "Audit_Master_LIVE.xlsx"
+            },
+            {
+              "name": "queue_sheet_name",
+              "value": "Clients_Queue"
+            },
+            {
+              "name": "raci_sheet_name",
+              "value": "RACI"
+            },
+            {
+              "name": "tools_sheet_name",
+              "value": "Tools"
+            },
+            {
+              "name": "kpi_sheet_name",
+              "value": "KPI_Snapshot"
+            },
+            {
+              "name": "benchmarks_sheet_name",
+              "value": "Benchmarks"
+            },
+            {
+              "name": "audit_master_table_name",
+              "value": "Audit_Master"
+            },
+            {
+              "name": "raci_output_table_name",
+              "value": "RACI_Output"
+            },
+            {
+              "name": "kpi_benchmarking_table_name",
+              "value": "KPI_Benchmarking"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Set SharePoint Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{$json.tenant_domain}}:/sites/{{$json.site_path}}",
+        "options": {}
+      },
+      "id": "3",
+      "name": "Get SharePoint Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const site = $json;\nconst ctx = $('Set SharePoint Context').first().json;\nreturn [{ json: { ...ctx, site_id: site.id } }];"
+      },
+      "id": "4",
+      "name": "Build Site Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "url": "=https://graph.microsoft.com/v1.0/sites/{{$json.site_id}}/drives",
+        "options": {}
+      },
+      "id": "5",
+      "name": "List Site Drives",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Build Site Context').first().json;\nconst drives = $json.value || [];\nconst preferred = drives.find(d => ['Documents', 'Shared Documents'].includes(d.name)) || drives[0];\nif (!preferred) throw new Error('No SharePoint drive found for site');\nreturn [{ json: { ...ctx, drive_id: preferred.id, drive_name: preferred.name } }];"
+      },
+      "id": "6",
+      "name": "Pick SharePoint Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/root:/{{$json.library_folder_path}}/{{$json.workbook_name}}",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Get Workbook Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        300
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const meta = $json;\nconst ctx = $('Pick SharePoint Drive').first().json;\nreturn [{\n  json: {\n    ...ctx,\n    workbook_item_id: meta.id,\n    workbook_web_url: meta.webUrl || '',\n    workbook_file_name: meta.name || ctx.workbook_name\n  }\n}];"
+      },
+      "id": "8",
+      "name": "Build Workbook Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/root:/{{$json.library_folder_path}}/{{$json.workbook_name}}:/content",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "id": "9",
+      "name": "Download Live Workbook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        300
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "data",
+        "options": {
+          "sheetName": "Clients_Queue",
+          "headerRow": true
+        }
+      },
+      "id": "10",
+      "name": "Read Client Queue",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "data",
+        "options": {
+          "sheetName": "RACI",
+          "headerRow": true
+        }
+      },
+      "id": "11",
+      "name": "1.2 RACI Matrix",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "data",
+        "options": {
+          "sheetName": "Tools",
+          "headerRow": true
+        }
+      },
+      "id": "12",
+      "name": "1.3 Tools Inventory",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "data",
+        "options": {
+          "sheetName": "KPI_Snapshot",
+          "headerRow": true
+        }
+      },
+      "id": "13",
+      "name": "1.4 KPI Snapshot",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "binaryPropertyName": "data",
+        "options": {
+          "sheetName": "Benchmarks",
+          "headerRow": true
+        }
+      },
+      "id": "14",
+      "name": "2.4a Benchmarks",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((i, idx) => ({ ...i.json, __sheet_row_number: idx + 2 }));\n\nfunction pick(obj, keys) {\n  for (const key of keys) {\n    if (obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') {\n      return obj[key];\n    }\n  }\n  return '';\n}\n\nfunction normStatus(value) {\n  const s = String(value || '').trim().toUpperCase();\n  if (s === 'COMPLETE') return 'COMPLETED';\n  return s;\n}\n\nconst normalised = rows.map(r => ({\n  raw: r,\n  source_row_number: r.__sheet_row_number,\n  client_name: pick(r, ['client_name', 'Client_Name']),\n  client_email: pick(r, ['client_email', 'Client_Email']),\n  sector: pick(r, ['sector', 'Sector']),\n  market_count: pick(r, ['market_count', 'Market_Count']),\n  maturity_stage: pick(r, ['maturity_stage', 'Maturity_Stage']),\n  gdrive_folder_id: pick(r, ['gdrive_folder_id', 'GDrive_Folder_ID', 'sharepoint_folder_id']),\n  audit_id: pick(r, ['Audit_ID', 'audit_id']),\n  status: normStatus(pick(r, ['Status', 'status'])),\n  created_at: pick(r, ['created_at', 'Created_At']),\n  completed_at: pick(r, ['Completed_At', 'completed_at'])\n})).filter(r => r.client_name || r.audit_id || r.gdrive_folder_id);\n\nconst readyRows = normalised.filter(r => r.status === 'READY');\n\nif (readyRows.length === 0) {\n  throw new Error(\n    'No client queue row found with Status = READY. Found statuses: ' +\n    normalised.map(r => `${r.client_name || r.audit_id || 'Unknown'}=${r.status || '[blank]'}`).join(', ')\n  );\n}\n\nif (readyRows.length > 1) {\n  throw new Error(\n    'Multiple READY rows found in Clients_Queue: ' +\n    readyRows.map(r => r.client_name || r.audit_id || 'Unknown').join(', ')\n  );\n}\n\nconst active = readyRows[0];\n\nreturn [{\n  json: {\n    client_name: active.client_name || 'Unknown Client',\n    client_email: active.client_email || '',\n    sector: active.sector || 'Unknown',\n    market_count: active.market_count || '',\n    maturity_stage: active.maturity_stage || 'Unknown',\n    gdrive_folder_id: active.gdrive_folder_id || '',\n    Audit_ID: active.audit_id || '',\n    Status: active.status,\n    created_at: active.created_at || '',\n    Completed_At: active.completed_at || '',\n    source_row_number: active.source_row_number\n  }\n}];"
+      },
+      "id": "15",
+      "name": "Select Active Client Queue Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeFirst(nodeName) {\n  try {\n    const n = $(nodeName);\n    if (!n || !n.isExecuted) return {};\n    return n.first().json || {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction firstNonEmpty(...vals) {\n  for (const v of vals) {\n    if (v !== null && v !== undefined && String(v).trim() !== '') {\n      return v;\n    }\n  }\n  return '';\n}\n\nfunction str(v, fallback = '') {\n  if (v === null || v === undefined) return fallback;\n  const s = String(v).trim();\n  return s === '' ? fallback : s;\n}\n\nconst active = safeFirst('Select Active Client Queue Row');\nconst trigger = safeFirst('Manual Trigger - Start Audit');\nconst vars = safeFirst('Variables and context');\nconst upload = safeFirst('Upload file') || safeFirst('Upload File');\n\nconst client_name = str(firstNonEmpty(\n  active.client_name,\n  active.Client_Name,\n  trigger.client_name,\n  trigger.Client_Name,\n  vars.client_name,\n  vars.Client_Name,\n  upload.client_name,\n  upload.Client_Name,\n  'Unknown Client'\n));\n\nconst client_email = str(firstNonEmpty(\n  active.client_email,\n  active.Client_Email,\n  trigger.client_email,\n  trigger.Client_Email,\n  vars.client_email,\n  vars.Client_Email,\n  upload.client_email,\n  upload.Client_Email,\n  'unknown@wpp.com'\n));\n\nconst sector = str(firstNonEmpty(\n  active.sector,\n  active.Sector,\n  trigger.sector,\n  trigger.Sector,\n  vars.sector,\n  vars.Sector,\n  upload.sector,\n  upload.Sector,\n  'Unknown'\n));\n\nconst market_count = firstNonEmpty(\n  active.market_count,\n  active.Market_Count,\n  trigger.market_count,\n  trigger.Market_Count,\n  vars.market_count,\n  vars.Market_Count,\n  upload.market_count,\n  upload.Market_Count,\n  ''\n);\n\nconst maturity_stage = str(firstNonEmpty(\n  active.maturity_stage,\n  active.Maturity_Stage,\n  trigger.maturity_stage,\n  trigger.Maturity_Stage,\n  vars.maturity_stage,\n  vars.Maturity_Stage,\n  upload.maturity_stage,\n  upload.Maturity_Stage,\n  'Unknown'\n));\n\nconst gdrive_folder_id = str(firstNonEmpty(\n  active.gdrive_folder_id,\n  active.GDrive_Folder_ID,\n  active.sharepoint_folder_id,\n  active.SharePoint_Folder_ID,\n  ''\n));\n\nconst audit_id = str(firstNonEmpty(\n  active.Audit_ID,\n  active.audit_id,\n  ''\n));\n\nconst status = str(firstNonEmpty(\n  active.Status,\n  active.status,\n  'NEW'\n)).toUpperCase();\n\nconst created_at = str(firstNonEmpty(\n  active.created_at,\n  active.Created_At,\n  new Date().toISOString()\n));\n\nconst completed_at = str(firstNonEmpty(\n  active.Completed_At,\n  active.completed_at,\n  ''\n));\n\nconst sharepoint_folder_id = gdrive_folder_id;\nconst excel_workbook_name = 'Audit_Master_LIVE.xlsx';\nconst audit_timestamp = new Date().toISOString();\n\nreturn [{\n  json: {\n    client_name,\n    client_email,\n    sector,\n    market_count,\n    maturity_stage,\n    gdrive_folder_id,\n    audit_id,\n    status,\n    created_at,\n    completed_at,\n    sharepoint_folder_id,\n    excel_workbook_name,\n    audit_timestamp,\n    source_row_number: active.source_row_number || ''\n  }\n}];"
+      },
+      "id": "16",
+      "name": "Dynamic Client Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Dynamic Client Config').first().json;\nconst wb = $('Build Workbook Context').first().json;\nconst row = Number(cfg.source_row_number || 0);\nif (!row) throw new Error('Missing source_row_number for queue status update');\nreturn [{\n  json: {\n    drive_id: wb.drive_id,\n    workbook_item_id: wb.workbook_item_id,\n    range_address: `Clients_Queue!G${row}:H${row}`,\n    values: [[\"PROCESSING\", \"\"]]\n  }\n}];"
+      },
+      "id": "17",
+      "name": "Build Queue PROCESSING Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "PATCH",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/items/{{$json.workbook_item_id}}/workbook/worksheets('Clients_Queue')/range(address='{{$json.range_address}}')",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { values: $json.values } }}",
+        "options": {}
+      },
+      "id": "18",
+      "name": "Update Queue Status PROCESSING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3200,
+        60
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Dynamic Client Config').first().json;\nconst sp = $('Set SharePoint Context').first().json;\nconst raci = $('1.2 RACI Matrix').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\nconst tools = $('1.3 Tools Inventory').all().map(i => i.json);\nconst kpis = $('1.4 KPI Snapshot').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\nconst benchmarks = $('2.4a Benchmarks').all().map(i => i.json).filter(r => Object.values(r).some(v => String(v || '').trim() !== ''));\n\nconst audit_id = cfg.audit_id;\nconst now = new Date().toISOString();\nconst run_id = `RUN-${audit_id}-${Date.now()}`;\n\nfunction pick(obj, keys, fallback = '') {\n  for (const key of keys) {\n    if (obj[key] !== undefined && obj[key] !== null && String(obj[key]).trim() !== '') return obj[key];\n  }\n  return fallback;\n}\n\nconst raciOutput = raci.map((r, idx) => ({\n  row_id: `${audit_id}-RACI-${idx + 1}`,\n  audit_id,\n  process: pick(r, ['process', 'Process']),\n  responsible: pick(r, ['responsible', 'Responsible']),\n  accountable: pick(r, ['accountable', 'Accountable']),\n  consulted: pick(r, ['consulted', 'Consulted']),\n  tools_used: pick(r, ['tools_used', 'Tools_Used', 'tool', 'Tool']),\n  automation_level: pick(r, ['automation_level', 'Automation_Level']),\n  informed: pick(r, ['informed', 'Informed']),\n  notes: pick(r, ['notes', 'Notes']),\n  created_at: now\n}));\n\nconst benchmarkMap = new Map();\nfor (const b of benchmarks) {\n  const metric = String(pick(b, ['metric', 'Metric'])).trim().toLowerCase();\n  if (!metric) continue;\n  benchmarkMap.set(metric, b);\n}\n\nfunction toNum(v) {\n  if (v === null || v === undefined || v === '') return null;\n  const n = Number(String(v).replace(/[^0-9.\\-]/g, ''));\n  return Number.isFinite(n) ? n : null;\n}\n\nconst kpiBenchmarking = kpis.map((k, idx) => {\n  const metric = pick(k, ['metric', 'Metric']);\n  const key = String(metric).trim().toLowerCase();\n  const b = benchmarkMap.get(key) || {};\n  const clientValue = toNum(pick(k, ['value', 'Value']));\n  const industryAvg = toNum(pick(b, ['industry_avg', 'Industry_Avg', 'avg', 'Average']));\n  const bestInClass = toNum(pick(b, ['best_in_class', 'Best_In_Class']));\n  const direction = pick(k, ['direction', 'Direction'], pick(b, ['direction', 'Direction'], 'HIGHER_IS_BETTER'));\n  const unit = pick(k, ['unit', 'Unit'], pick(b, ['unit', 'Unit']));\n\n  let gapVsAvgPct = '';\n  if (clientValue !== null && industryAvg !== null && industryAvg !== 0) {\n    gapVsAvgPct = (((clientValue - industryAvg) / industryAvg) * 100).toFixed(2);\n  }\n\n  let status = 'NO_BENCHMARK';\n  if (industryAvg !== null && clientValue !== null) {\n    if (String(direction).toUpperCase() === 'LOWER_IS_BETTER') {\n      status = clientValue <= industryAvg ? 'ON_TRACK' : 'GAP';\n    } else {\n      status = clientValue >= industryAvg ? 'ON_TRACK' : 'GAP';\n    }\n  }\n\n  return {\n    row_id: `${audit_id}-KPI-${idx + 1}`,\n    audit_id,\n    client_name: cfg.client_name,\n    sector: cfg.sector,\n    metric,\n    client_value: pick(k, ['value', 'Value']),\n    industry_avg: industryAvg ?? pick(b, ['industry_avg', 'Industry_Avg', 'avg', 'Average'], ''),\n    best_in_class: bestInClass ?? pick(b, ['best_in_class', 'Best_In_Class'], ''),\n    direction,\n    unit,\n    gap_vs_avg_pct: gapVsAvgPct,\n    status,\n    opportunity_value: '',\n    created_at: now\n  };\n});\n\nconst totalBaselineDays = 100;\nconst totalOrchestratedDays = 70;\nconst totalReductionPct = 30;\nconst totalOpportunityValue = '';\nconst overallStatus = 'COMPLETED';\n\nconst execSummaryMd = [\n  `Client: ${cfg.client_name}`,\n  `Audit ID: ${audit_id}`,\n  `Sector: ${cfg.sector}`,\n  `Maturity Stage: ${cfg.maturity_stage}`,\n  `RACI rows: ${raciOutput.length}`,\n  `KPI rows: ${kpiBenchmarking.length}`,\n  `Generated at: ${now}`\n].join('\\n');\n\nconst auditReportTxt = [\n  `AI Operating Model Audit`,\n  `Client: ${cfg.client_name}`,\n  `Audit ID: ${audit_id}`,\n  `Sector: ${cfg.sector}`,\n  `Maturity Stage: ${cfg.maturity_stage}`,\n  `RACI output count: ${raciOutput.length}`,\n  `KPI benchmarking count: ${kpiBenchmarking.length}`,\n  `Tools input count: ${tools.length}`,\n  `Run timestamp: ${now}`\n].join('\\n');\n\nfunction encodePath(path) {\n  return String(path || '')\n    .split('/')\n    .filter(Boolean)\n    .map(p => encodeURIComponent(p))\n    .join('/');\n}\n\nconst reportFileName = `${cfg.client_name.replace(/\\s+/g, '_')}__AI_Operating_Model_AUDIT__${audit_id}.txt`;\nconst libraryPath = encodePath(sp.library_folder_path);\nconst clientPath = encodePath(cfg.gdrive_folder_id);\nconst sitePath = encodePath(sp.site_path);\nconst optionalClientFolder = clientPath ? `/${clientPath}` : '';\nconst reportUrlPlaceholder = `https://${sp.tenant_domain}/sites/${sitePath}/${libraryPath}${optionalClientFolder}/${encodeURIComponent(reportFileName)}`;\n\nconst auditMasterRow = {\n  row_id: `${audit_id}-MASTER-1`,\n  audit_id,\n  client_name: cfg.client_name,\n  sector: cfg.sector,\n  maturity_stage: cfg.maturity_stage,\n  run_timestamp: now,\n  total_baseline_days: totalBaselineDays,\n  total_orchestrated_days: totalOrchestratedDays,\n  total_reduction_pct: totalReductionPct,\n  total_opportunity_value: totalOpportunityValue,\n  overall_status: overallStatus,\n  notes: '',\n  run_id,\n  report_url: reportUrlPlaceholder,\n  recommended_scenario: 'BASELINE',\n  npv: '',\n  irr: '',\n  recommendations_count: kpiBenchmarking.filter(x => x.status === 'GAP').length,\n  raci_count: raciOutput.length,\n  created_at: now\n};\n\nreturn [{\n  json: {\n    audit_id,\n    run_id,\n    now,\n    client_name: cfg.client_name,\n    sector: cfg.sector,\n    maturity_stage: cfg.maturity_stage,\n    gdrive_folder_id: cfg.gdrive_folder_id,\n    auditMasterRow,\n    raciOutput,\n    kpiBenchmarking,\n    exec_summary_md: execSummaryMd,\n    audit_report_txt: auditReportTxt\n  }\n}];"
+      },
+      "id": "19",
+      "name": "Compose Audit Outputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Compose Audit Outputs').first().json;\nconst wb = $('Build Workbook Context').first().json;\nconst row = payload.auditMasterRow;\nreturn [{\n  json: {\n    drive_id: wb.drive_id,\n    workbook_item_id: wb.workbook_item_id,\n    values: [[\n      row.row_id,\n      row.audit_id,\n      row.client_name,\n      row.sector,\n      row.maturity_stage,\n      row.run_timestamp,\n      row.total_baseline_days,\n      row.total_orchestrated_days,\n      row.total_reduction_pct,\n      row.total_opportunity_value,\n      row.overall_status,\n      row.notes,\n      row.run_id,\n      row.report_url,\n      row.recommended_scenario,\n      row.npv,\n      row.irr,\n      row.recommendations_count,\n      row.raci_count,\n      row.created_at\n    ]]\n  }\n}];"
+      },
+      "id": "20",
+      "name": "Build Audit_Master Write Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/items/{{$json.workbook_item_id}}/workbook/tables/Audit_Master/rows/add",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { values: $json.values } }}",
+        "options": {}
+      },
+      "id": "21",
+      "name": "Write Audit_Master",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2960,
+        260
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Compose Audit Outputs').first().json;\nconst wb = $('Build Workbook Context').first().json;\nconst values = payload.raciOutput.map(r => ([\n  r.row_id,\n  r.audit_id,\n  r.process,\n  r.responsible,\n  r.accountable,\n  r.consulted,\n  r.tools_used,\n  r.automation_level,\n  r.informed,\n  r.notes,\n  r.created_at\n]));\nreturn [{ json: { drive_id: wb.drive_id, workbook_item_id: wb.workbook_item_id, values } }];"
+      },
+      "id": "22",
+      "name": "Build RACI Output Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/items/{{$json.workbook_item_id}}/workbook/tables/RACI_Output/rows/add",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { values: $json.values } }}",
+        "options": {}
+      },
+      "id": "23",
+      "name": "Write RACI Output",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2960,
+        380
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Compose Audit Outputs').first().json;\nconst wb = $('Build Workbook Context').first().json;\nconst values = payload.kpiBenchmarking.map(r => ([\n  r.row_id,\n  r.audit_id,\n  r.client_name,\n  r.sector,\n  r.metric,\n  r.client_value,\n  r.industry_avg,\n  r.best_in_class,\n  r.direction,\n  r.unit,\n  r.gap_vs_avg_pct,\n  r.status,\n  r.opportunity_value,\n  r.created_at\n]));\nreturn [{ json: { drive_id: wb.drive_id, workbook_item_id: wb.workbook_item_id, values } }];"
+      },
+      "id": "24",
+      "name": "Build KPI Benchmarking Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/items/{{$json.workbook_item_id}}/workbook/tables/KPI_Benchmarking/rows/add",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { values: $json.values } }}",
+        "options": {}
+      },
+      "id": "25",
+      "name": "Write KPI Benchmarking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2960,
+        500
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Compose Audit Outputs').first().json;\nconst filename = `${payload.client_name.replace(/\\s+/g, '_')}__EXEC_SUM__${payload.audit_id}.txt`;\nconst text = payload.exec_summary_md;\nreturn [{\n  json: { file_name: filename, folder_name: payload.gdrive_folder_id },\n  binary: {\n    data: {\n      data: Buffer.from(text, 'utf8').toString('base64'),\n      mimeType: 'text/plain',\n      fileName: filename\n    }\n  }\n}];"
+      },
+      "id": "26",
+      "name": "Create Exec Summary File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Compose Audit Outputs').first().json;\nconst filename = `${payload.client_name.replace(/\\s+/g, '_')}__AI_Operating_Model_AUDIT__${payload.audit_id}.txt`;\nconst text = payload.audit_report_txt;\nreturn [{\n  json: { file_name: filename, folder_name: payload.gdrive_folder_id },\n  binary: {\n    data: {\n      data: Buffer.from(text, 'utf8').toString('base64'),\n      mimeType: 'text/plain',\n      fileName: filename\n    }\n  }\n}];"
+      },
+      "id": "27",
+      "name": "Create Audit Report File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "PUT",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$('Build Workbook Context').first().json.drive_id}}/root:/{{$('Set SharePoint Context').first().json.library_folder_path}}/{{$json.folder_name}}/{{$json.file_name}}:/content",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "28",
+      "name": "Upload Exec Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2720,
+        660
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "PUT",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$('Build Workbook Context').first().json.drive_id}}/root:/{{$('Set SharePoint Context').first().json.library_folder_path}}/{{$json.folder_name}}/{{$json.file_name}}:/content",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "29",
+      "name": "Upload Audit Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2720,
+        780
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "wait"
+      },
+      "id": "30",
+      "name": "Wait For All Writes",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3200,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Dynamic Client Config').first().json;\nconst wb = $('Build Workbook Context').first().json;\nconst row = Number(cfg.source_row_number || 0);\nif (!row) throw new Error('Missing source_row_number for completed queue status update');\nreturn [{\n  json: {\n    drive_id: wb.drive_id,\n    workbook_item_id: wb.workbook_item_id,\n    range_address: `Clients_Queue!G${row}:H${row}`,\n    values: [[\"COMPLETED\", new Date().toISOString()]]\n  }\n}];"
+      },
+      "id": "31",
+      "name": "Build Queue COMPLETED Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "microsoftOAuth2Api",
+        "method": "PATCH",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{$json.drive_id}}/items/{{$json.workbook_item_id}}/workbook/worksheets('Clients_Queue')/range(address='{{$json.range_address}}')",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { values: $json.values } }}",
+        "options": {}
+      },
+      "id": "32",
+      "name": "Update Queue Status COMPLETED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3680,
+        440
+      ],
+      "credentials": {
+        "microsoftOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "Microsoft OAuth2 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Dynamic Client Config').first().json;\nconst outputs = $('Compose Audit Outputs').first().json;\nreturn [{\n  json: {\n    status: 'ok',\n    client_name: cfg.client_name,\n    audit_id: cfg.audit_id,\n    queue_status: 'COMPLETED',\n    client_folder: cfg.gdrive_folder_id,\n    uploaded_files: [\n      `${outputs.client_name.replace(/\\s+/g, '_')}__EXEC_SUM__${outputs.audit_id}.txt`,\n      `${outputs.client_name.replace(/\\s+/g, '_')}__AI_Operating_Model_AUDIT__${outputs.audit_id}.txt`\n    ],\n    workbook: 'Audit_Master_LIVE.xlsx'\n  }\n}];"
+      },
+      "id": "33",
+      "name": "Final Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        440
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger - Start Audit": {
+      "main": [
+        [
+          {
+            "node": "Set SharePoint Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set SharePoint Context": {
+      "main": [
+        [
+          {
+            "node": "Get SharePoint Site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get SharePoint Site": {
+      "main": [
+        [
+          {
+            "node": "Build Site Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Site Context": {
+      "main": [
+        [
+          {
+            "node": "List Site Drives",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Site Drives": {
+      "main": [
+        [
+          {
+            "node": "Pick SharePoint Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick SharePoint Drive": {
+      "main": [
+        [
+          {
+            "node": "Get Workbook Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workbook Metadata": {
+      "main": [
+        [
+          {
+            "node": "Build Workbook Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Workbook Context": {
+      "main": [
+        [
+          {
+            "node": "Download Live Workbook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Live Workbook": {
+      "main": [
+        [
+          {
+            "node": "Read Client Queue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.2 RACI Matrix",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.3 Tools Inventory",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "1.4 KPI Snapshot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "2.4a Benchmarks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Client Queue": {
+      "main": [
+        [
+          {
+            "node": "Select Active Client Queue Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Active Client Queue Row": {
+      "main": [
+        [
+          {
+            "node": "Dynamic Client Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamic Client Config": {
+      "main": [
+        [
+          {
+            "node": "Build Queue PROCESSING Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Compose Audit Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Queue PROCESSING Payload": {
+      "main": [
+        [
+          {
+            "node": "Update Queue Status PROCESSING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Audit Outputs": {
+      "main": [
+        [
+          {
+            "node": "Build Audit_Master Write Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build RACI Output Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build KPI Benchmarking Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Exec Summary File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Audit Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audit_Master Write Payload": {
+      "main": [
+        [
+          {
+            "node": "Write Audit_Master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build RACI Output Payload": {
+      "main": [
+        [
+          {
+            "node": "Write RACI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build KPI Benchmarking Payload": {
+      "main": [
+        [
+          {
+            "node": "Write KPI Benchmarking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Exec Summary File": {
+      "main": [
+        [
+          {
+            "node": "Upload Exec Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audit Report File": {
+      "main": [
+        [
+          {
+            "node": "Upload Audit Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Audit_Master": {
+      "main": [
+        [
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write RACI Output": {
+      "main": [
+        [
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Write KPI Benchmarking": {
+      "main": [
+        [
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upload Exec Summary": {
+      "main": [
+        [
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upload Audit Report": {
+      "main": [
+        [
+          {
+            "node": "Wait For All Writes",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Wait For All Writes": {
+      "main": [
+        [
+          {
+            "node": "Build Queue COMPLETED Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Queue COMPLETED Payload": {
+      "main": [
+        [
+          {
+            "node": "Update Queue Status COMPLETED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Queue Status COMPLETED": {
+      "main": [
+        [
+          {
+            "node": "Final Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "sharepoint-live-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    {
+      "name": "WPP"
+    },
+    {
+      "name": "n8n"
+    },
+    {
+      "name": "SharePoint"
+    },
+    {
+      "name": "AI Operating Model"
+    }
+  ]
+}
