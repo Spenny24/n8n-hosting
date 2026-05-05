@@ -1,0 +1,407 @@
+{
+  "name": "Animal Diving Videos Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "animal-diving",
+        "options": {
+          "responseMode": "onReceived"
+        }
+      },
+      "id": "1",
+      "name": "Form Submission",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "agentId": "={{ $env[\"PROMPT_AGENT_ID\"] }}",
+        "input": "={{ { animal: $json.body.animal, vibe: $json.body.vibe, duration: $json.body.duration } }}"
+      },
+      "id": "2",
+      "name": "Prompts AI Agent",
+      "type": "n8n-nodes-base.promptNode",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "chat",
+        "model": "openrouter/anthropic/claude-3.5-sonnet",
+        "messages": [
+          {
+            "role": "system",
+            "content": "Generate cinematic underwater prompts. Return JSON with keys: image_prompts[3], video_prompt, sound_style."
+          },
+          {
+            "role": "user",
+            "content": "={{ $json.output }}"
+          }
+        ],
+        "responseFormat": "json"
+      },
+      "id": "3",
+      "name": "OpenRouter Chat Model",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 4,
+      "position": [
+        -220,
+        280
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_OPENROUTER\"] }}",
+          "name": "OpenRouter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": "={\n  \"type\": \"object\",\n  \"properties\": {\n    \"image_prompts\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"video_prompt\": {\n      \"type\": \"string\"\n    },\n    \"sound_style\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\"image_prompts\", \"video_prompt\", \"sound_style\"]\n}"
+      },
+      "id": "4",
+      "name": "Structured Output Parser",
+      "type": "n8n-nodes-base.jsonSchema",
+      "typeVersion": 1,
+      "position": [
+        60,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"IMAGE_API_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"prompts\": $json.image_prompts,\n  \"style\": \"underwater film\"\n}"
+      },
+      "id": "5",
+      "name": "Create Images",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        360,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 30,
+        "unit": "seconds"
+      },
+      "id": "6",
+      "name": "Wait for Clips",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        600,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.job_status_url }}",
+        "method": "GET"
+      },
+      "id": "7",
+      "name": "Get Images",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        840,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"VIDEO_API_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"prompt\": $item(0).$node['Structured Output Parser'].json.video_prompt,\n  \"images\": $json.data.assets,\n  \"duration\": $json.body.duration ?? 45\n}"
+      },
+      "id": "8",
+      "name": "Create Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1080,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 20,
+        "unit": "seconds"
+      },
+      "id": "9",
+      "name": "Wait for Sounds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.status_url }}",
+        "method": "GET"
+      },
+      "id": "10",
+      "name": "Get Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1560,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"AUDIO_API_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"style\": $item(0).$node['Structured Output Parser'].json.sound_style,\n  \"duration\": $json.body.duration ?? 45\n}"
+      },
+      "id": "11",
+      "name": "Create Sound",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1080,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 20,
+        "unit": "seconds"
+      },
+      "id": "12",
+      "name": "Wait for Sounds1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.status_url }}",
+        "method": "GET"
+      },
+      "id": "13",
+      "name": "Get Video1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "={{ $env[\"GOOGLE_SHEET_ID\"] }}",
+        "range": "AnimalDiving!A:G",
+        "options": {
+          "valueInputMode": "USER_ENTERED"
+        },
+        "fields": {
+          "string": [
+            {
+              "name": "animal",
+              "value": "={{ $json.body.animal }}"
+            },
+            {
+              "name": "video_url",
+              "value": "={{ $item(0).$node['Get Video'].json.data.assets.video.url }}"
+            },
+            {
+              "name": "audio_url",
+              "value": "={{ $item(0).$node['Get Video1'].json.data.assets.audio.url }}"
+            }
+          ]
+        }
+      },
+      "id": "14",
+      "name": "Google Sheets (update)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1800,
+        200
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "={{ $env[\"N8N_CREDENTIAL_GOOGLE\"] }}",
+          "name": "Google Service"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Form Submission": {
+      "main": [
+        [
+          {
+            "node": "Prompts AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompts AI Agent": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Chat Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "main": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "main": [
+        [
+          {
+            "node": "Create Images",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Sound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Images": {
+      "main": [
+        [
+          {
+            "node": "Wait for Clips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Clips": {
+      "main": [
+        [
+          {
+            "node": "Get Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Images": {
+      "main": [
+        [
+          {
+            "node": "Create Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Video": {
+      "main": [
+        [
+          {
+            "node": "Wait for Sounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Sounds": {
+      "main": [
+        [
+          {
+            "node": "Get Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Sound": {
+      "main": [
+        [
+          {
+            "node": "Wait for Sounds1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Sounds1": {
+      "main": [
+        [
+          {
+            "node": "Get Video1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets (update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Video1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets (update)",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "animal-diving-001",
+  "settings": {
+    "timezone": "America/New_York"
+  }
+}

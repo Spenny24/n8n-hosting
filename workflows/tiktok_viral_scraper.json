@@ -1,0 +1,436 @@
+{
+  "name": "TikTok Viral Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "cronExpression": "15 * * * *"
+      },
+      "id": "1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "scraperApiToken",
+              "value": "={{ $env[\"APIFY_TOKEN\"] }}"
+            },
+            {
+              "name": "tiktokHashtag",
+              "value": "animals"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const payload = {\n  actorId: 'apify/tiktok-scraper',\n  token: $json.scraperApiToken,\n  input: {\n    proxy: { useApifyProxy: true },\n    hashtags: [$json.tiktokHashtag],\n    resultsPerPage: 50\n  }\n};\nreturn [{ json: payload }];"
+      },
+      "id": "3",
+      "name": "Get TikToks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.apify.com/v2/actor-runs",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={{ $json }}"
+      },
+      "id": "4",
+      "name": "Run Apify Actor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        -80,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "waitTime": 60,
+        "unit": "seconds"
+      },
+      "id": "5",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.items[0].resultUrl }}",
+        "method": "GET"
+      },
+      "id": "6",
+      "name": "Get Run Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        400,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "fields": "diggCount,shareCount,playCount,authorMeta"
+        }
+      },
+      "id": "7",
+      "name": "Analyze JSON",
+      "type": "n8n-nodes-base.moveBinaryData",
+      "typeVersion": 1,
+      "position": [
+        640,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "itemList",
+        "operation": "aggregate",
+        "options": {
+          "sort": {
+            "key": "playCount",
+            "order": "desc"
+          }
+        }
+      },
+      "id": "8",
+      "name": "Sort",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 1,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "id": "9",
+      "name": "Limit Top 10",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "token",
+              "value": "={{ $env[\"UPDATE_TOKEN\"] }}"
+            }
+          ]
+        }
+      },
+      "id": "10",
+      "name": "Add Update Tokens",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "return $input.all().map(item => ({ json: { ...item.json } }));"
+      },
+      "id": "11",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.videoUrl }}",
+        "method": "GET",
+        "responseFormat": "file"
+      },
+      "id": "12",
+      "name": "Download File from TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        1840,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"GEMINI_UPLOAD_URL\"] }}",
+        "method": "POST",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "options": {},
+        "bodyParametersJson": "={\n  \"fileName\": $json.id + '.mp4',\n  \"data\": $binary.data.data\n}"
+      },
+      "id": "13",
+      "name": "Upload File to Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        2080,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.uploadUrl }}",
+        "method": "GET",
+        "responseFormat": "file"
+      },
+      "id": "14",
+      "name": "Download File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        2320,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env[\"GEMINI_ANALYZE_URL\"] }}",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"fileId\": $json.fileId,\n  \"questions\": [\"hook\", \"structure\", \"cta\"]\n}"
+      },
+      "id": "15",
+      "name": "Gemini Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 9,
+      "position": [
+        2560,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "analysis",
+              "value": "={{ $json.analysis }}"
+            }
+          ]
+        }
+      },
+      "id": "16",
+      "name": "Add Analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get TikToks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get TikToks": {
+      "main": [
+        [
+          {
+            "node": "Run Apify Actor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Apify Actor": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Run Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Run Items": {
+      "main": [
+        [
+          {
+            "node": "Analyze JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze JSON": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Limit Top 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Top 10": {
+      "main": [
+        [
+          {
+            "node": "Add Update Tokens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Update Tokens": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Download File from TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File from TikTok": {
+      "main": [
+        [
+          {
+            "node": "Upload File to Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload File to Gemini": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Gemini Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Analysis": {
+      "main": [
+        [
+          {
+            "node": "Add Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "tiktok-scraper-001",
+  "settings": {
+    "timezone": "America/New_York"
+  }
+}
